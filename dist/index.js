@@ -44,137 +44,128 @@ function run() {
         const octokit = new rest_1.Octokit({
             auth: core.getInput('token')
         });
-        let reviewers = yield fetchRequestedReviewers(octokit);
-        if (!reviewers) {
-            return;
-        }
-        let issues = yield extractIssuesFromPullRequestBody((_a = github.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.body);
-        for (var issue of issues) {
+        const reviewers = yield fetchRequestedReviewers(octokit);
+        const issues = yield extractIssuesFromPullRequestBody((_a = github.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.body);
+        for (const issue of issues) {
             // Unassign the issue from the PR creator, if possible
-            console.log('Unassigning ' + github.context.actor + ' from #' + issue.number);
+            core.info('Unassigning ${github.context.actor}  from # ${issue.number}');
             yield octokit.rest.issues.removeAssignees({
                 owner: github.context.repo.owner,
                 repo: github.context.repo.repo,
                 issue_number: issue.number,
                 assignees: [github.context.actor]
             });
-            yield assignIssueToReviewer(octokit, issue);
+            yield assignIssueToReviewer(octokit, issue, reviewers);
             yield moveIssueFromColumnToColumn(octokit, issue, core.getInput('fromColumnId'), core.getInput('toColumnId'));
         }
-        function moveIssueFromColumnToColumn(octokit, issue, fromColumnId, toColumnId) {
-            return __awaiter(this, void 0, void 0, function* () {
-                console.log('Moving issue #' + issue.number + ' to Review column');
-                // Unfortunately the only sane way to interact with an issue on a project board is to find its associated "card"
-                let card = yield fetchCardForIssue(octokit, issue, fromColumnId);
-                if (card) {
-                    yield octokit.rest.projects.moveCard({
-                        card_id: card.id,
-                        position: 'bottom',
-                        column_id: parseInt(toColumnId)
-                    });
-                    console.log('Successfully moved issue #' + issue.number);
-                }
-            });
+    });
+}
+function fetchRequestedReviewers(octokit) {
+    return __awaiter(this, void 0, void 0, function* () {
+        core.info('Fetching requested reviewers');
+        const requestedReviewersJson = yield octokit.rest.pulls.listRequestedReviewers({
+            owner: github.context.repo.owner,
+            repo: github.context.repo.repo,
+            pull_number: github.context.issue.number
+        });
+        const reviewers = requestedReviewersJson.data.users.map(r => r.login);
+        if (reviewers) {
+            core.info('Pull request reviewers: ${reviewers}');
+            return reviewers;
         }
-        function fetchCardForIssue(octokit, issue, columnId) {
-            return __awaiter(this, void 0, void 0, function* () {
-                const cards = yield octokit.rest.projects.listCards({
-                    column_id: parseInt(columnId)
-                });
-                let card = cards.data.find(c => c.content_url === issue.url);
-                if (card) {
-                    console.log('Found card ' + card.id + ' for issue ' + issue.number);
-                    return card;
-                }
-                else {
-                    console.log('No matching card found for issue ' +
-                        issue.number +
-                        ' in column ' +
-                        columnId);
-                    return null;
-                }
-            });
+        else {
+            core.info('No reviewers found');
+            return [];
         }
-        function assignIssueToReviewer(octokit, issue) {
-            return __awaiter(this, void 0, void 0, function* () {
-                console.log('Assigning ' + reviewers + ' to issue #' + issue.number);
-                yield octokit.rest.issues.addAssignees({
-                    owner: github.context.repo.owner,
-                    repo: github.context.repo.repo,
-                    issue_number: issue.number,
-                    assignees: reviewers
-                });
-                console.log('Successfully assigned issue #' + issue.number);
-            });
+    });
+}
+function extractIssuesFromPullRequestBody(pullRequestBody) {
+    return __awaiter(this, void 0, void 0, function* () {
+        // Currently, the sanest way to get linked issues is to look for them in the pull request body
+        core.info('Pull request body: ${pullRequestBody}');
+        const issueNumbers = pullRequestBody === null || pullRequestBody === void 0 ? void 0 : pullRequestBody.match(/#\d+/g);
+        if (issueNumbers) {
+            core.info('Found ${issueNumbers.length} issue numbers in pull request body: ${issueNumbers}');
         }
-        function extractIssuesFromPullRequestBody(pullRequestBody) {
-            return __awaiter(this, void 0, void 0, function* () {
-                // Currently, the sanest way to get linked issues is to look for them in the pull request body
-                console.log('Pull request body: ' + pullRequestBody);
-                let issueNumbers = pullRequestBody === null || pullRequestBody === void 0 ? void 0 : pullRequestBody.match(/#\d+/g);
-                if (issueNumbers) {
-                    console.log('Found ' +
-                        issueNumbers.length +
-                        ' issue numbers in pull request body: ' +
-                        issueNumbers);
-                }
-                else {
-                    console.log('No linked issues found in pull request body');
-                    return [];
-                }
-                let issues = [];
-                for (var issueNumber in issueNumbers) {
-                    // Parse the actual number (without the #)
-                    let parsed = issueNumber.match(/\d+/g);
-                    if (parsed) {
-                        let issue = yield fetchIssue(parsed[0]);
-                        if (issue) {
-                            issues.push(issue);
-                        }
-                    }
-                }
-                return issues;
-            });
+        else {
+            core.info('No linked issues found in pull request body');
+            return [];
         }
-        function fetchIssue(issueNumber) {
-            return __awaiter(this, void 0, void 0, function* () {
-                try {
-                    console.log('Fetching issue #' + issueNumber);
-                    let issue = yield github
-                        .getOctokit(github.context.repo.repo)
-                        .rest.issues.get({
-                        owner: github.context.repo.owner,
-                        repo: github.context.repo.repo,
-                        issue_number: parseInt(issueNumber)
-                    });
-                    console.log('Found valid issue #' + issueNumber);
-                    return issue.data;
+        const issues = [];
+        for (const issueNumber in issueNumbers) {
+            // Parse the actual number (without the #)
+            const parsed = issueNumber.match(/\d+/g);
+            if (parsed) {
+                const issue = yield fetchIssue(parsed[0]);
+                if (issue) {
+                    issues.push(issue);
                 }
-                catch (_a) {
-                    console.log('No valid issue found for #' + issueNumber);
-                    return null;
-                }
-            });
+            }
         }
-        function fetchRequestedReviewers(octokit) {
-            return __awaiter(this, void 0, void 0, function* () {
-                console.log('Fetching requested reviewers');
-                const requestedReviewersJson = yield octokit.rest.pulls.listRequestedReviewers({
-                    owner: github.context.repo.owner,
-                    repo: github.context.repo.repo,
-                    pull_number: github.context.issue.number
-                });
-                const reviewers = requestedReviewersJson.data.users.map(r => r.login);
-                if (reviewers) {
-                    console.log('Pull request reviewers: ' + reviewers);
-                    return reviewers;
-                }
-                else {
-                    console.log('No reviewers found');
-                    return [];
-                }
+        return issues;
+    });
+}
+function fetchIssue(issueNumber) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            core.info('Fetching issue #${issueNumber}');
+            const issue = yield github
+                .getOctokit(github.context.repo.repo)
+                .rest.issues.get({
+                owner: github.context.repo.owner,
+                repo: github.context.repo.repo,
+                issue_number: parseInt(issueNumber)
             });
+            core.info('Found valid issue # ${issueNumber}');
+            return issue.data;
         }
+        catch (_a) {
+            core.info('No valid issue found for #${issueNumber}');
+            return null;
+        }
+    });
+}
+function moveIssueFromColumnToColumn(octokit, issue, fromColumnId, toColumnId) {
+    return __awaiter(this, void 0, void 0, function* () {
+        core.info('Moving issue #${issue.number} to Review column');
+        // Unfortunately the only sane way to interact with an issue on a project board is to find its associated "card"
+        const card = yield fetchCardForIssue(octokit, issue, fromColumnId);
+        if (card) {
+            yield octokit.rest.projects.moveCard({
+                card_id: card.id,
+                position: 'bottom',
+                column_id: parseInt(toColumnId)
+            });
+            core.info('Successfully moved issue # ${issue.number}');
+        }
+    });
+}
+function fetchCardForIssue(octokit, issue, columnId) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const cards = yield octokit.rest.projects.listCards({
+            column_id: parseInt(columnId)
+        });
+        const card = cards.data.find(c => c.content_url === issue.url);
+        if (card) {
+            core.info('Found card ${card.id} for issue ${issue.number}');
+            return card;
+        }
+        else {
+            core.info('No matching card found for issue ${issue.number} in column ${columnId}');
+            return null;
+        }
+    });
+}
+function assignIssueToReviewer(octokit, issue, reviewers) {
+    return __awaiter(this, void 0, void 0, function* () {
+        core.info('Assigning reviewers ${reviewers} to issue #${issue.number}');
+        yield octokit.rest.issues.addAssignees({
+            owner: github.context.repo.owner,
+            repo: github.context.repo.repo,
+            issue_number: issue.number,
+            assignees: reviewers
+        });
+        core.info('Successfully assigned issue #${issue.number}');
     });
 }
 run();
