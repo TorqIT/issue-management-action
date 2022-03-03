@@ -1,11 +1,16 @@
-name: 'Your name here'
-description: 'Provide a description here'
-author: 'Your name or organization here'
+name: 'Issue Management Action'
+description: 'Automatically assigns and moves Issues that are linked to Pull Requests'
+author: 'TorqIT'
 inputs:
-  milliseconds: # change this
+  token:
     required: true
-    description: 'input description here'
-    default: 'default value if applicable'
+    description: 'GitHub token. In an Action, use secrets.GITHUB_TOKEN'
+  fromColumnId:
+    required: true
+    description: 'The project column in which to look for issues'
+  toColumnId:
+    required: true
+    description: 'The project column to move issues to'
 runs:
   using: 'node16'
   main: 'dist/index.js'
