@@ -62,7 +62,7 @@ function run() {
 }
 function fetchRequestedReviewers(octokit) {
     return __awaiter(this, void 0, void 0, function* () {
-        core.info('Fetching requested reviewers');
+        core.info(`Fetching requested reviewers`);
         const requestedReviewersJson = yield octokit.rest.pulls.listRequestedReviewers({
             owner: github.context.repo.owner,
             repo: github.context.repo.repo,
@@ -82,7 +82,7 @@ function fetchRequestedReviewers(octokit) {
 function extractIssuesFromPullRequestBody(pullRequestBody) {
     return __awaiter(this, void 0, void 0, function* () {
         // Currently, the sanest way to get linked issues is to look for them in the pull request body
-        core.info('Pull request body: ${pullRequestBody}');
+        core.info(`Pull request body: ${pullRequestBody}`);
         const issueNumbers = pullRequestBody === null || pullRequestBody === void 0 ? void 0 : pullRequestBody.match(/#\d+/g);
         if (issueNumbers) {
             core.info(`Found ${issueNumbers.length} issue numbers in pull request body: ${issueNumbers}`);

@@ -39,7 +39,7 @@ async function run(): Promise<void> {
 }
 
 async function fetchRequestedReviewers(octokit: Octokit): Promise<string[]> {
-  core.info('Fetching requested reviewers')
+  core.info(`Fetching requested reviewers`)
   const requestedReviewersJson =
     await octokit.rest.pulls.listRequestedReviewers({
       owner: github.context.repo.owner,
@@ -60,7 +60,7 @@ async function extractIssuesFromPullRequestBody(
   pullRequestBody?: string
 ): Promise<Issue[]> {
   // Currently, the sanest way to get linked issues is to look for them in the pull request body
-  core.info('Pull request body: ${pullRequestBody}')
+  core.info(`Pull request body: ${pullRequestBody}`)
   const issueNumbers = pullRequestBody?.match(/#\d+/g)
   if (issueNumbers) {
     core.info(
