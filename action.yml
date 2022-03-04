@@ -1,7 +1,7 @@
 name: 'Issue Management Action'
 description: 'Automatically assigns and moves Issues that are linked to Pull Requests'
 author: 'TorqIT'
-icon: move
+icon: 'move'
 inputs:
   token:
     required: true
