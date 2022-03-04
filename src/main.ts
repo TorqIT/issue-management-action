@@ -76,7 +76,7 @@ async function extractIssuesFromPullRequestBody(
     // Parse the actual number (without the #)
     const parsed = issueNumber.replace(/[^0-9]/g, '')
     if (parsed) {
-      const issue = await fetchIssue(parsed[0])
+      const issue = await fetchIssue(parsed)
       if (issue) {
         issues.push(issue)
       }
