@@ -152,7 +152,7 @@ async function assignIssueToReviewer(
   issue: Issue,
   reviewers: string[]
 ): Promise<void> {
-  core.info('Assigning reviewers ${reviewers} to issue #${issue.number}')
+  core.info(`Assigning reviewers ${reviewers} to issue #${issue.number}`)
   await octokit.rest.issues.addAssignees({
     owner: github.context.repo.owner,
     repo: github.context.repo.repo,

@@ -159,7 +159,7 @@ function fetchCardForIssue(octokit, issue, columnId) {
 }
 function assignIssueToReviewer(octokit, issue, reviewers) {
     return __awaiter(this, void 0, void 0, function* () {
-        core.info('Assigning reviewers ${reviewers} to issue #${issue.number}');
+        core.info(`Assigning reviewers ${reviewers} to issue #${issue.number}`);
         yield octokit.rest.issues.addAssignees({
             owner: github.context.repo.owner,
             repo: github.context.repo.repo,
