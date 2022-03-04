@@ -120,7 +120,9 @@ function fetchIssue(issueNumber) {
             core.info(`Found valid issue # ${issueNumber}`);
             return issue.data;
         }
-        catch (_a) {
+        catch (e) {
+            if (e instanceof Error)
+                core.error(e.message);
             core.info(`No valid issue found for #${issueNumber}`);
             return null;
         }

@@ -98,7 +98,8 @@ async function fetchIssue(issueNumber: string): Promise<Issue | null> {
       })
     core.info(`Found valid issue # ${issueNumber}`)
     return issue.data
-  } catch {
+  } catch (e) {
+    if (e instanceof Error) core.error(e.message)
     core.info(`No valid issue found for #${issueNumber}`)
     return null
   }
