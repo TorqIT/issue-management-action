@@ -48,7 +48,7 @@ function run() {
         const issues = yield extractIssuesFromPullRequestBody((_a = github.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.body);
         for (const issue of issues) {
             // Unassign the issue from the PR creator, if possible
-            core.info('Unassigning ${github.context.actor}  from # ${issue.number}');
+            core.info(`Unassigning ${github.context.actor}  from # ${issue.number}`);
             yield octokit.rest.issues.removeAssignees({
                 owner: github.context.repo.owner,
                 repo: github.context.repo.repo,
@@ -70,11 +70,11 @@ function fetchRequestedReviewers(octokit) {
         });
         const reviewers = requestedReviewersJson.data.users.map(r => r.login);
         if (reviewers) {
-            core.info('Pull request reviewers: ${reviewers}');
+            core.info(`Pull request reviewers: ${reviewers}`);
             return reviewers;
         }
         else {
-            core.info('No reviewers found');
+            core.info(`No reviewers found`);
             return [];
         }
     });
@@ -85,10 +85,10 @@ function extractIssuesFromPullRequestBody(pullRequestBody) {
         core.info('Pull request body: ${pullRequestBody}');
         const issueNumbers = pullRequestBody === null || pullRequestBody === void 0 ? void 0 : pullRequestBody.match(/#\d+/g);
         if (issueNumbers) {
-            core.info('Found ${issueNumbers.length} issue numbers in pull request body: ${issueNumbers}');
+            core.info(`Found ${issueNumbers.length} issue numbers in pull request body: ${issueNumbers}`);
         }
         else {
-            core.info('No linked issues found in pull request body');
+            core.info(`No linked issues found in pull request body`);
             return [];
         }
         const issues = [];
@@ -108,7 +108,7 @@ function extractIssuesFromPullRequestBody(pullRequestBody) {
 function fetchIssue(issueNumber) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            core.info('Fetching issue #${issueNumber}');
+            core.info(`Fetching issue #${issueNumber}`);
             const issue = yield github
                 .getOctokit(github.context.repo.repo)
                 .rest.issues.get({
@@ -116,18 +116,18 @@ function fetchIssue(issueNumber) {
                 repo: github.context.repo.repo,
                 issue_number: parseInt(issueNumber)
             });
-            core.info('Found valid issue # ${issueNumber}');
+            core.info(`Found valid issue # ${issueNumber}`);
             return issue.data;
         }
         catch (_a) {
-            core.info('No valid issue found for #${issueNumber}');
+            core.info(`No valid issue found for #${issueNumber}`);
             return null;
         }
     });
 }
 function moveIssueFromColumnToColumn(octokit, issue, fromColumnId, toColumnId) {
     return __awaiter(this, void 0, void 0, function* () {
-        core.info('Moving issue #${issue.number} to Review column');
+        core.info(`Moving issue #${issue.number} to Review column`);
         // Unfortunately the only sane way to interact with an issue on a project board is to find its associated "card"
         const card = yield fetchCardForIssue(octokit, issue, fromColumnId);
         if (card) {
@@ -136,7 +136,7 @@ function moveIssueFromColumnToColumn(octokit, issue, fromColumnId, toColumnId) {
                 position: 'bottom',
                 column_id: parseInt(toColumnId)
             });
-            core.info('Successfully moved issue # ${issue.number}');
+            core.info(`Successfully moved issue # ${issue.number}`);
         }
     });
 }
@@ -147,11 +147,11 @@ function fetchCardForIssue(octokit, issue, columnId) {
         });
         const card = cards.data.find(c => c.content_url === issue.url);
         if (card) {
-            core.info('Found card ${card.id} for issue ${issue.number}');
+            core.info(`Found card ${card.id} for issue ${issue.number}`);
             return card;
         }
         else {
-            core.info('No matching card found for issue ${issue.number} in column ${columnId}');
+            core.info(`No matching card found for issue ${issue.number} in column ${columnId}`);
             return null;
         }
     });
@@ -165,7 +165,7 @@ function assignIssueToReviewer(octokit, issue, reviewers) {
             issue_number: issue.number,
             assignees: reviewers
         });
-        core.info('Successfully assigned issue #${issue.number}');
+        core.info(`Successfully assigned issue #${issue.number}`);
     });
 }
 run();
