@@ -92,11 +92,12 @@ function extractIssuesFromPullRequestBody(pullRequestBody) {
             return [];
         }
         const issues = [];
-        for (const issueNumber in issueNumbers) {
+        for (const issueNumber of issueNumbers) {
+            core.info(`Issue number: ${issueNumber}`);
             // Parse the actual number (without the #)
-            const parsed = issueNumber.match(/\d+/g);
+            const parsed = issueNumber.replace(/[^0-9]/g, '');
             if (parsed) {
-                const issue = yield fetchIssue(parsed[0]);
+                const issue = yield fetchIssue(parsed);
                 if (issue) {
                     issues.push(issue);
                 }
