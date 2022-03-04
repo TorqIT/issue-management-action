@@ -7,7 +7,7 @@ branding:
 inputs:
   token:
     required: true
-    description: 'GitHub token. In an Action, use secrets.GITHUB_TOKEN'
+    description: 'GitHub token. In an Action, use ${{ secrets.GITHUB_TOKEN }}'
   fromColumnId:
     required: true
     description: 'The project column in which to look for issues'
