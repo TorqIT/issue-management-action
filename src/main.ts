@@ -19,7 +19,7 @@ async function run(): Promise<void> {
 
   for (const issue of issues) {
     // Unassign the issue from the PR creator, if possible
-    core.info('Unassigning ${github.context.actor}  from # ${issue.number}')
+    core.info(`Unassigning ${github.context.actor}  from # ${issue.number}`)
     await octokit.rest.issues.removeAssignees({
       owner: github.context.repo.owner,
       repo: github.context.repo.repo,
@@ -48,10 +48,10 @@ async function fetchRequestedReviewers(octokit: Octokit): Promise<string[]> {
     })
   const reviewers = requestedReviewersJson.data.users.map(r => r.login)
   if (reviewers) {
-    core.info('Pull request reviewers: ${reviewers}')
+    core.info(`Pull request reviewers: ${reviewers}`)
     return reviewers
   } else {
-    core.info('No reviewers found')
+    core.info(`No reviewers found`)
     return []
   }
 }
@@ -64,10 +64,10 @@ async function extractIssuesFromPullRequestBody(
   const issueNumbers = pullRequestBody?.match(/#\d+/g)
   if (issueNumbers) {
     core.info(
-      'Found ${issueNumbers.length} issue numbers in pull request body: ${issueNumbers}'
+      `Found ${issueNumbers.length} issue numbers in pull request body: ${issueNumbers}`
     )
   } else {
-    core.info('No linked issues found in pull request body')
+    core.info(`No linked issues found in pull request body`)
     return []
   }
 
@@ -87,7 +87,7 @@ async function extractIssuesFromPullRequestBody(
 
 async function fetchIssue(issueNumber: string): Promise<Issue | null> {
   try {
-    core.info('Fetching issue #${issueNumber}')
+    core.info(`Fetching issue #${issueNumber}`)
     const issue = await github
       .getOctokit(github.context.repo.repo)
       .rest.issues.get({
@@ -95,10 +95,10 @@ async function fetchIssue(issueNumber: string): Promise<Issue | null> {
         repo: github.context.repo.repo,
         issue_number: parseInt(issueNumber)
       })
-    core.info('Found valid issue # ${issueNumber}')
+    core.info(`Found valid issue # ${issueNumber}`)
     return issue.data
   } catch {
-    core.info('No valid issue found for #${issueNumber}')
+    core.info(`No valid issue found for #${issueNumber}`)
     return null
   }
 }
@@ -109,7 +109,7 @@ async function moveIssueFromColumnToColumn(
   fromColumnId: string,
   toColumnId: string
 ): Promise<void> {
-  core.info('Moving issue #${issue.number} to Review column')
+  core.info(`Moving issue #${issue.number} to Review column`)
   // Unfortunately the only sane way to interact with an issue on a project board is to find its associated "card"
   const card = await fetchCardForIssue(octokit, issue, fromColumnId)
   if (card) {
@@ -118,7 +118,7 @@ async function moveIssueFromColumnToColumn(
       position: 'bottom',
       column_id: parseInt(toColumnId)
     })
-    core.info('Successfully moved issue # ${issue.number}')
+    core.info(`Successfully moved issue # ${issue.number}`)
   }
 }
 
@@ -132,11 +132,11 @@ async function fetchCardForIssue(
   })
   const card = cards.data.find(c => c.content_url === issue.url)
   if (card) {
-    core.info('Found card ${card.id} for issue ${issue.number}')
+    core.info(`Found card ${card.id} for issue ${issue.number}`)
     return card
   } else {
     core.info(
-      'No matching card found for issue ${issue.number} in column ${columnId}'
+      `No matching card found for issue ${issue.number} in column ${columnId}`
     )
     return null
   }
@@ -154,6 +154,7 @@ async function assignIssueToReviewer(
     issue_number: issue.number,
     assignees: reviewers
   })
-  core.info('Successfully assigned issue #${issue.number}')
+  core.info(`Successfully assigned issue #${issue.number}`)
 }
+
 run()
