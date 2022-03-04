@@ -48,7 +48,7 @@ function run() {
         const issues = yield extractIssuesFromPullRequestBody(octokit, (_a = github.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.body);
         for (const issue of issues) {
             // Unassign the issue from the PR creator, if possible
-            core.info(`Unassigning ${github.context.actor}  from # ${issue.number}`);
+            core.info(`Unassigning ${github.context.actor} from #${issue.number}`);
             yield octokit.rest.issues.removeAssignees({
                 owner: github.context.repo.owner,
                 repo: github.context.repo.repo,
@@ -115,7 +115,7 @@ function fetchIssue(octokit, issueNumber) {
                 repo: github.context.repo.repo,
                 issue_number: parseInt(issueNumber)
             });
-            core.info(`Found valid issue # ${issueNumber}`);
+            core.info(`Found valid issue #${issueNumber}`);
             return issue.data;
         }
         catch (e) {
