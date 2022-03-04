@@ -73,6 +73,7 @@ async function extractIssuesFromPullRequestBody(
 
   const issues = []
   for (const issueNumber of issueNumbers) {
+    core.info(`${issueNumber}`)
     // Parse the actual number (without the #)
     const parsed = issueNumber.replace(/[^0-9]/g, '')
     if (parsed) {
