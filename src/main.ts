@@ -14,6 +14,7 @@ async function run(): Promise<void> {
   const reviewers = await fetchRequestedReviewers(octokit)
 
   const issues = await extractIssuesFromPullRequestBody(
+    octokit,
     github.context.payload.pull_request?.body
   )
 
@@ -57,6 +58,7 @@ async function fetchRequestedReviewers(octokit: Octokit): Promise<string[]> {
 }
 
 async function extractIssuesFromPullRequestBody(
+  octokit: Octokit,
   pullRequestBody?: string
 ): Promise<Issue[]> {
   // Currently, the sanest way to get linked issues is to look for them in the pull request body
@@ -77,7 +79,7 @@ async function extractIssuesFromPullRequestBody(
     // Parse the actual number (without the #)
     const parsed = issueNumber.replace(/[^0-9]/g, '')
     if (parsed) {
-      const issue = await fetchIssue(parsed)
+      const issue = await fetchIssue(octokit, parsed)
       if (issue) {
         issues.push(issue)
       }
@@ -86,16 +88,17 @@ async function extractIssuesFromPullRequestBody(
   return issues
 }
 
-async function fetchIssue(issueNumber: string): Promise<Issue | null> {
+async function fetchIssue(
+  octokit: Octokit,
+  issueNumber: string
+): Promise<Issue | null> {
   try {
     core.info(`Fetching issue #${issueNumber}`)
-    const issue = await github
-      .getOctokit(github.context.repo.repo)
-      .rest.issues.get({
-        owner: github.context.repo.owner,
-        repo: github.context.repo.repo,
-        issue_number: parseInt(issueNumber)
-      })
+    const issue = await octokit.rest.issues.get({
+      owner: github.context.repo.owner,
+      repo: github.context.repo.repo,
+      issue_number: parseInt(issueNumber)
+    })
     core.info(`Found valid issue # ${issueNumber}`)
     return issue.data
   } catch (e) {

@@ -45,7 +45,7 @@ function run() {
             auth: core.getInput('token')
         });
         const reviewers = yield fetchRequestedReviewers(octokit);
-        const issues = yield extractIssuesFromPullRequestBody((_a = github.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.body);
+        const issues = yield extractIssuesFromPullRequestBody(octokit, (_a = github.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.body);
         for (const issue of issues) {
             // Unassign the issue from the PR creator, if possible
             core.info(`Unassigning ${github.context.actor}  from # ${issue.number}`);
@@ -79,7 +79,7 @@ function fetchRequestedReviewers(octokit) {
         }
     });
 }
-function extractIssuesFromPullRequestBody(pullRequestBody) {
+function extractIssuesFromPullRequestBody(octokit, pullRequestBody) {
     return __awaiter(this, void 0, void 0, function* () {
         // Currently, the sanest way to get linked issues is to look for them in the pull request body
         core.info(`Pull request body: ${pullRequestBody}`);
@@ -97,7 +97,7 @@ function extractIssuesFromPullRequestBody(pullRequestBody) {
             // Parse the actual number (without the #)
             const parsed = issueNumber.replace(/[^0-9]/g, '');
             if (parsed) {
-                const issue = yield fetchIssue(parsed);
+                const issue = yield fetchIssue(octokit, parsed);
                 if (issue) {
                     issues.push(issue);
                 }
@@ -106,13 +106,11 @@ function extractIssuesFromPullRequestBody(pullRequestBody) {
         return issues;
     });
 }
-function fetchIssue(issueNumber) {
+function fetchIssue(octokit, issueNumber) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             core.info(`Fetching issue #${issueNumber}`);
-            const issue = yield github
-                .getOctokit(github.context.repo.repo)
-                .rest.issues.get({
+            const issue = yield octokit.rest.issues.get({
                 owner: github.context.repo.owner,
                 repo: github.context.repo.repo,
                 issue_number: parseInt(issueNumber)
