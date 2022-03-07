@@ -137,7 +137,7 @@ function moveIssueFromColumnToColumn(octokit, issue, fromColumnId, toColumnId) {
                 position: 'bottom',
                 column_id: parseInt(toColumnId)
             });
-            core.info(`Successfully moved issue # ${issue.number}`);
+            core.info(`Successfully moved issue #${issue.number}`);
         }
     });
 }

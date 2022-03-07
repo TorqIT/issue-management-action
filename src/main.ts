@@ -123,7 +123,7 @@ async function moveIssueFromColumnToColumn(
       position: 'bottom',
       column_id: parseInt(toColumnId)
     })
-    core.info(`Successfully moved issue # ${issue.number}`)
+    core.info(`Successfully moved issue #${issue.number}`)
   }
 }
 
