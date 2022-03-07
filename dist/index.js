@@ -56,7 +56,7 @@ function run() {
                 assignees: [github.context.actor]
             });
             yield assignIssueToReviewer(octokit, issue, reviewers);
-            yield moveIssueFromColumnToColumn(octokit, issue, core.getInput('fromColumnId'), core.getInput('toColumnId'));
+            yield moveIssueFromColumnToColumn(octokit, issue, core.getInput('fromColumnIds'), core.getInput('toColumnId'));
         }
     });
 }
@@ -126,11 +126,11 @@ function fetchIssue(octokit, issueNumber) {
         }
     });
 }
-function moveIssueFromColumnToColumn(octokit, issue, fromColumnId, toColumnId) {
+function moveIssueFromColumnToColumn(octokit, issue, fromColumnIds, toColumnId) {
     return __awaiter(this, void 0, void 0, function* () {
         core.info(`Moving issue #${issue.number} to Review column`);
         // Unfortunately the only sane way to interact with an issue on a project board is to find its associated "card"
-        const card = yield fetchCardForIssue(octokit, issue, fromColumnId);
+        const card = yield fetchCardForIssue(octokit, issue, fromColumnIds);
         if (card) {
             yield octokit.rest.projects.moveCard({
                 card_id: card.id,
@@ -141,20 +141,21 @@ function moveIssueFromColumnToColumn(octokit, issue, fromColumnId, toColumnId) {
         }
     });
 }
-function fetchCardForIssue(octokit, issue, columnId) {
+function fetchCardForIssue(octokit, issue, columnIds) {
     return __awaiter(this, void 0, void 0, function* () {
-        const cards = yield octokit.rest.projects.listCards({
-            column_id: parseInt(columnId)
-        });
-        const card = cards.data.find(c => c.content_url === issue.url);
-        if (card) {
-            core.info(`Found card ${card.id} for issue ${issue.number}`);
-            return card;
+        let card = null;
+        for (const columnId of columnIds.split(',')) {
+            const response = yield octokit.rest.projects.listCards({
+                column_id: parseInt(columnId)
+            });
+            card = response.data.find(c => c.content_url === issue.url);
+            if (card) {
+                core.info(`Found card ${card.id} for issue ${issue.number}`);
+                return card;
+            }
         }
-        else {
-            core.info(`No matching card found for issue ${issue.number} in column ${columnId}`);
-            return null;
-        }
+        core.info(`No matching card found for issue ${issue.number} in column ${columnIds}`);
+        return null;
     });
 }
 function assignIssueToReviewer(octokit, issue, reviewers) {

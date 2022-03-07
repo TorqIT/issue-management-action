@@ -2,15 +2,15 @@ name: 'Issue Management Action'
 description: 'Automatically assigns and moves Issues that are linked to Pull Requests'
 author: 'TorqIT'
 branding:
-  icon: 'move'  
+  icon: 'move'
   color: 'green'
 inputs:
   token:
     required: true
     description: 'GitHub token. In an Action workflow, use secrets.GITHUB_TOKEN'
-  fromColumnId:
+  fromColumnIds:
     required: true
-    description: 'The project column in which to look for issues'
+    description: 'Comma-separated list of project columns in which to look for issues'
   toColumnId:
     required: true
     description: 'The project column to move issues to'

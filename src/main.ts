@@ -33,7 +33,7 @@ async function run(): Promise<void> {
     await moveIssueFromColumnToColumn(
       octokit,
       issue,
-      core.getInput('fromColumnId'),
+      core.getInput('fromColumnIds'),
       core.getInput('toColumnId')
     )
   }
@@ -111,12 +111,12 @@ async function fetchIssue(
 async function moveIssueFromColumnToColumn(
   octokit: Octokit,
   issue: Issue,
-  fromColumnId: string,
+  fromColumnIds: string,
   toColumnId: string
 ): Promise<void> {
   core.info(`Moving issue #${issue.number} to Review column`)
   // Unfortunately the only sane way to interact with an issue on a project board is to find its associated "card"
-  const card = await fetchCardForIssue(octokit, issue, fromColumnId)
+  const card = await fetchCardForIssue(octokit, issue, fromColumnIds)
   if (card) {
     await octokit.rest.projects.moveCard({
       card_id: card.id,
@@ -130,21 +130,24 @@ async function moveIssueFromColumnToColumn(
 async function fetchCardForIssue(
   octokit: Octokit,
   issue: Issue,
-  columnId: string
+  columnIds: string
 ): Promise<Card | null> {
-  const cards = await octokit.rest.projects.listCards({
-    column_id: parseInt(columnId)
-  })
-  const card = cards.data.find(c => c.content_url === issue.url)
-  if (card) {
-    core.info(`Found card ${card.id} for issue ${issue.number}`)
-    return card
-  } else {
-    core.info(
-      `No matching card found for issue ${issue.number} in column ${columnId}`
-    )
-    return null
+  let card = null
+  for (const columnId of columnIds.split(',')) {
+    const response = await octokit.rest.projects.listCards({
+      column_id: parseInt(columnId)
+    })
+    card = response.data.find(c => c.content_url === issue.url)
+    if (card) {
+      core.info(`Found card ${card.id} for issue ${issue.number}`)
+      return card
+    }
   }
+
+  core.info(
+    `No matching card found for issue ${issue.number} in column ${columnIds}`
+  )
+  return null
 }
 
 async function assignIssueToReviewer(
