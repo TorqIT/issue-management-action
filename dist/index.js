@@ -145,6 +145,7 @@ function fetchCardForIssue(octokit, issue, columnIds) {
     return __awaiter(this, void 0, void 0, function* () {
         let card = null;
         for (const columnId of columnIds.split(',')) {
+            core.info(`Searching for matching cards in column ${columnId}`);
             const response = yield octokit.rest.projects.listCards({
                 column_id: parseInt(columnId)
             });
@@ -154,7 +155,7 @@ function fetchCardForIssue(octokit, issue, columnIds) {
                 return card;
             }
         }
-        core.info(`No matching card found for issue ${issue.number} in column ${columnIds}`);
+        core.info(`No matching card found for issue ${issue.number} in columns ${columnIds}`);
         return null;
     });
 }
