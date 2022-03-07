@@ -114,7 +114,7 @@ async function moveIssueFromColumnToColumn(
   fromColumnIds: string,
   toColumnId: string
 ): Promise<void> {
-  core.info(`Moving issue #${issue.number} to Review column`)
+  core.info(`Moving issue #${issue.number} to column ${toColumnId}`)
   // Unfortunately the only sane way to interact with an issue on a project board is to find its associated "card"
   const card = await fetchCardForIssue(octokit, issue, fromColumnIds)
   if (card) {

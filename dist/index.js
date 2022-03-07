@@ -128,7 +128,7 @@ function fetchIssue(octokit, issueNumber) {
 }
 function moveIssueFromColumnToColumn(octokit, issue, fromColumnIds, toColumnId) {
     return __awaiter(this, void 0, void 0, function* () {
-        core.info(`Moving issue #${issue.number} to Review column`);
+        core.info(`Moving issue #${issue.number} to column ${toColumnId}`);
         // Unfortunately the only sane way to interact with an issue on a project board is to find its associated "card"
         const card = yield fetchCardForIssue(octokit, issue, fromColumnIds);
         if (card) {
