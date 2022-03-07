@@ -1,0 +1,22 @@
+name: 'build-test'
+on:
+  pull_request:
+    types: review_requested
+
+jobs:
+  pull_requests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build
+        uses: actions/checkout@v3
+        run: |
+          npm install
+          npm run all
+
+      - name: Run test
+        uses: actions/checkout@v3
+        uses: ./
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fromColumnIds: 17943239
+          toColumnId: 17943242
