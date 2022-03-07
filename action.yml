@@ -1,4 +1,4 @@
-name: 'Issue Management'
+name: 'Issue Management Action'
 description: 'Automatically assigns and moves Issues that are linked to Pull Requests'
 author: 'TorqIT'
 branding:
