@@ -27,4 +27,4 @@ jobs:
 
 1. Clone the repository.
 2. Run `npm install` to install dependencies.
-3. After making your changes, run `npm run build && npm run package` to compile and package the changes. Be sure to include these changes in your commit(s).
+3. After making your changes, run `npm ci && npm run build && npm run package` to compile and package the changes. Be sure to include these changes in your commit(s).
