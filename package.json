@@ -28,6 +28,7 @@
     "@actions/core": "^1.6.0",
     "@actions/github": "^5.0.0",
     "@octokit/graphql": "^5.0.4",
+    "@octokit/graphql-schema": "^12.34.0",
     "@octokit/openapi-types": "^11.2.0",
     "@octokit/rest": "^18.12.0"
   },
