@@ -1,7 +1,14 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
-import {Octokit} from '@octokit/rest'
 import {components} from '@octokit/openapi-types'
+import {graphql} from '@octokit/graphql'
+import type {graphql as GraphQl} from '@octokit/graphql/dist-types/types'
+import {Octokit} from '@octokit/rest'
+import {
+  Organization,
+  ProjectV2Field,
+  ProjectV2SingleSelectField
+} from '@octokit/graphql-schema'
 
 type Issue = components['schemas']['issue']
 type Card = components['schemas']['project-card']
@@ -9,6 +16,12 @@ type Card = components['schemas']['project-card']
 async function run(): Promise<void> {
   const octokit = new Octokit({
     auth: core.getInput('token')
+  })
+
+  const graphqlWithAuth = graphql.defaults({
+    headers: {
+      authorization: `token ${core.getInput('token')}`
+    }
   })
 
   const reviewers = await fetchRequestedReviewers(octokit)
@@ -30,11 +43,10 @@ async function run(): Promise<void> {
 
     await assignIssueToReviewer(octokit, issue, reviewers)
 
-    await moveIssueFromColumnToColumn(
-      octokit,
+    await updateIssueStatusInProject(
+      graphqlWithAuth,
       issue,
-      core.getInput('fromColumnIds'),
-      core.getInput('toColumnId')
+      core.getInput('projectNumber')
     )
   }
 }
@@ -108,47 +120,51 @@ async function fetchIssue(
   }
 }
 
-async function moveIssueFromColumnToColumn(
-  octokit: Octokit,
+async function updateIssueStatusInProject(
+  graphqlWithAuth: GraphQl,
   issue: Issue,
-  fromColumnIds: string,
-  toColumnId: string
+  projectNumber: number
 ): Promise<void> {
-  core.info(`Moving issue #${issue.number} to column ${toColumnId}`)
-  // Unfortunately the only sane way to interact with an issue on a project board is to find its associated "card"
-  const card = await fetchCardForIssue(octokit, issue, fromColumnIds)
-  if (card) {
-    await octokit.rest.projects.moveCard({
-      card_id: card.id,
-      position: 'bottom',
-      column_id: parseInt(toColumnId)
-    })
-    core.info(`Successfully moved issue #${issue.number}`)
-  }
-}
-
-async function fetchCardForIssue(
-  octokit: Octokit,
-  issue: Issue,
-  columnIds: string
-): Promise<Card | null> {
-  let card = null
-  for (const columnId of columnIds.split(',')) {
-    core.info(`Searching for matching cards in column ${columnId}`)
-    const response = await octokit.rest.projects.listCards({
-      column_id: parseInt(columnId)
-    })
-    card = response.data.find(c => c.content_url === issue.url)
-    if (card) {
-      core.info(`Found card ${card.id} for issue ${issue.number}`)
-      return card
+  core.info(`Updating status for issue #${issue.number}`)
+  const query = await graphqlWithAuth<{
+    organization: Organization
+    nodes: (ProjectV2Field & ProjectV2SingleSelectField)[]
+  }>(
+    `
+      query($org: String!, $number: Int!) {
+        organization(login: $org) {
+          projectV2(number: $number) {
+            id
+            fields(first:20) {
+              nodes {
+                ... on ProjectV2Field {
+                  id
+                  name
+                }
+                ... on ProjectV2SingleSelectField {
+                  id
+                  name
+                  options {
+                    id
+                    name
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    `,
+    {
+      org: github.context.repo.owner,
+      number: projectNumber
     }
-  }
-
-  core.info(
-    `No matching card found for issue ${issue.number} in columns ${columnIds}`
   )
-  return null
+  const statusFieldId = query.nodes.find(x => x.name === 'Status')?.id
+  const reviewOptionId = query.nodes
+    .find(x => x.name === 'Status')
+    ?.options.find(x => x.name.includes('Review'))?.id
+  // TODO find issue and update its status to the "review" option
 }
 
 async function assignIssueToReviewer(
