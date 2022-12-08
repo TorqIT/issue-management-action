@@ -5,6 +5,10 @@ on:
 
 jobs:
   pull_requests:
+    permissions:
+      repository-projects: write
+      issues: write
+
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
