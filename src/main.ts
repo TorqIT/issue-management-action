@@ -134,9 +134,9 @@ async function updateIssueStatusInProject(
     repository: Repository
   }>(
     `
-      query($org: String!, $number: Int!) {
+      query GetIssueInformation($org: String!, $projectNum: Int!, $issueNumber: Int!) {
         organization(login: $org) {
-          projectV2(number: $number) {
+          projectV2(number: $projectNum) {
             id
             fields(first:20) {
               nodes {
@@ -156,8 +156,6 @@ async function updateIssueStatusInProject(
             }
           }
         }
-      }
-      query($org: String!, $repo: String!, $issueNumber: Int!) {
         repository(name: $repo, owner: $org) {
           issue: issue(number: $issueNumber) {
             id
@@ -167,7 +165,7 @@ async function updateIssueStatusInProject(
     `,
     {
       org: github.context.repo.owner,
-      number: projectNumber,
+      projectNum: projectNumber,
       issueNumber: issue.id
     }
   )
