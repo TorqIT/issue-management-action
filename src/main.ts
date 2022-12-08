@@ -171,9 +171,7 @@ async function updateIssueStatusInProject(
     `,
     {
       org: github.context.repo.owner,
-      repo: github.context.repo.repo,
-      projectNum: projectNumber,
-      issueNumber: issue.number
+      projectNum: projectNumber
     }
   )
 
