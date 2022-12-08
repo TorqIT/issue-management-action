@@ -9,7 +9,8 @@ import {
   ProjectV2Field,
   ProjectV2SingleSelectField,
   Repository,
-  UpdateProjectV2ItemFieldValueInput
+  UpdateProjectV2ItemFieldValueInput,
+  Issue as GraphQlIssue
 } from '@octokit/graphql-schema'
 
 type Issue = components['schemas']['issue']
@@ -154,11 +155,16 @@ async function updateIssueStatusInProject(
                 }
               }
             }
-          }
-        }
-        repository(name: $repo, owner: $org) {
-          issue: issue(number: $issueNumber) {
-            id
+            items(first:100) {
+              nodes {
+                id
+                content {
+                  ... on Issue {
+                    number
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -172,7 +178,9 @@ async function updateIssueStatusInProject(
   )
 
   const globalProjectId = query.organization.projectV2?.id
-  const globalIssueId = query.repository.issue?.id
+  const globalIssueId = query.organization.projectV2?.items?.nodes?.find(
+    x => (x?.content as GraphQlIssue).number
+  )?.id
 
   const nodes = query.organization.projectV2?.fields.nodes
   const statusField = nodes?.find(
