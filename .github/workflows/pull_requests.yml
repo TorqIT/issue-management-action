@@ -5,16 +5,16 @@ on:
 
 jobs:
   pull_requests:
-    permissions:
-      pull-requests: read
-      contents: read
-      repository-projects: write
-      statuses: read
-      issues: write
-
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+
+      - name: Generate token
+        id: generate_token
+        uses: tibdex/github-app-token@v1
+        with:
+          app_id: ${{ secrets.APP_ID }}
+          private_key: ${{ secrets.APP_PEM }}
 
       - name: Build
         run: |
@@ -22,6 +22,8 @@ jobs:
           npm run all
 
       - name: Run test
+        env:
+          GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
         uses: ./
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
