@@ -162,14 +162,14 @@ async function updateIssueStatusInProject(
       number: projectNumber
     }
   )
-  core.info(JSON.stringify(query))
-  const statusFieldId = query.nodes.find(x => x.name === 'Status')?.id
-  const reviewOptionId = query.nodes
-    .find(x => x.name === 'Status')
-    ?.options.find(x => x.name.includes('Review'))?.id
-  core.info(
-    `Found status field ID ${statusFieldId} and "review" option ID ${reviewOptionId}`
-  )
+  core.info(JSON.stringify(query.nodes))
+  const statusField = query.nodes.find(x => x.name === 'Status')
+  const statusFieldId = statusField?.id
+  core.info(`Found status field ID ${statusFieldId}`)
+  const reviewOptionId = statusField?.options.find(x =>
+    x.name.includes('Review')
+  )?.id
+  core.info(`Found review option ID ${reviewOptionId}`)
 
   if (statusFieldId && reviewOptionId) {
     core.info(`Setting field ${statusFieldId} in issue ${issue.id}`)
