@@ -125,7 +125,9 @@ async function updateIssueStatusInProject(
   issue: Issue,
   projectNumber: number
 ): Promise<void> {
-  core.info(`Updating status for issue #${issue.number}`)
+  core.info(`Updating status for issue #${issue.number}...`)
+
+  core.info('Fetching project status field information...')
   const query = await graphqlWithAuth<{
     organization: Organization
     nodes: (ProjectV2Field & ProjectV2SingleSelectField)[]
@@ -164,8 +166,12 @@ async function updateIssueStatusInProject(
   const reviewOptionId = query.nodes
     .find(x => x.name === 'Status')
     ?.options.find(x => x.name.includes('Review'))?.id
+  core.info(
+    `Found status field ID ${statusFieldId} and "review" option ID ${reviewOptionId}`
+  )
 
   if (statusFieldId && reviewOptionId) {
+    core.info(`Setting field ${statusFieldId} in issue ${issue.id}`)
     const updateIssueInput: UpdateProjectV2ItemFieldValueInput = {
       fieldId: statusFieldId,
       itemId: issue.id.toString(),
@@ -184,9 +190,10 @@ async function updateIssueStatusInProject(
         input: updateIssueInput
       }
     )
+    core.info('Successfully updated issue status')
+  } else {
+    core.error(`Error finding a status field/review column`)
   }
-
-  core.info('Successfully updated issue status')
 }
 
 async function assignIssueToReviewer(
