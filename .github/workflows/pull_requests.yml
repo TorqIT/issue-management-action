@@ -7,9 +7,10 @@ jobs:
   pull_requests:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v2
+
       - name: Build
         run: |
-          cd ..
           npm install
           npm run all
 
