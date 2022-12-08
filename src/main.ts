@@ -185,7 +185,9 @@ async function updateIssueStatusInProject(
     await graphqlWithAuth<{input: UpdateProjectV2ItemFieldValueInput}>(
       `
         mutation {
-          updateProjectV2ItemFieldValue(input: $input)
+          updateProjectV2ItemFieldValue(input: $input) {
+            ...
+          }
         }
       `,
       {
