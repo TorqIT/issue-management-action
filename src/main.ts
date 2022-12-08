@@ -182,12 +182,13 @@ async function updateIssueStatusInProject(
         singleSelectOptionId: reviewOptionId
       }
     }
-    await graphqlWithAuth<{input: UpdateProjectV2ItemFieldValueInput}>(
+    await graphqlWithAuth<{
+      input: UpdateProjectV2ItemFieldValueInput
+    }>(
       `
         mutation {
-          updateProjectV2ItemFieldValue(input: $input) {
+          updateProjectV2ItemFieldValue(input: $input) { 
             clientMutationId
-            projectV2Item
           }
         }
       `,
