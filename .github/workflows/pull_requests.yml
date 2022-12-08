@@ -6,7 +6,8 @@ on:
 jobs:
   pull_requests:
     permissions:
-      repository-projects: write
+      id-token: read
+      repository-projects: read
       issues: write
 
     runs-on: ubuntu-latest
