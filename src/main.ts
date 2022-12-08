@@ -7,11 +7,11 @@ import {Octokit} from '@octokit/rest'
 import {
   Organization,
   ProjectV2Field,
-  ProjectV2SingleSelectField
+  ProjectV2SingleSelectField,
+  UpdateProjectV2ItemFieldValueInput
 } from '@octokit/graphql-schema'
 
 type Issue = components['schemas']['issue']
-type Card = components['schemas']['project-card']
 
 async function run(): Promise<void> {
   const octokit = new Octokit({
@@ -164,7 +164,29 @@ async function updateIssueStatusInProject(
   const reviewOptionId = query.nodes
     .find(x => x.name === 'Status')
     ?.options.find(x => x.name.includes('Review'))?.id
-  // TODO find issue and update its status to the "review" option
+
+  if (statusFieldId && reviewOptionId) {
+    const updateIssueInput: UpdateProjectV2ItemFieldValueInput = {
+      fieldId: statusFieldId,
+      itemId: issue.id.toString(),
+      projectId: projectNumber.toString(),
+      value: {
+        singleSelectOptionId: reviewOptionId
+      }
+    }
+    await graphqlWithAuth<{input: UpdateProjectV2ItemFieldValueInput}>(
+      `
+        mutation() {
+          updateProjectV2ItemFieldValue(input: $input)
+        }
+      `,
+      {
+        input: updateIssueInput
+      }
+    )
+  }
+
+  core.info('Successfully updated issue status')
 }
 
 async function assignIssueToReviewer(
