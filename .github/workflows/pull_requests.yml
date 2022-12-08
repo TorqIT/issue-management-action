@@ -9,7 +9,7 @@ jobs:
     steps:
       - name: Build
         run: |
-          ls -l
+          cd ..
           npm install
           npm run all
 
