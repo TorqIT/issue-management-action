@@ -8,6 +8,7 @@ import {
   Organization,
   ProjectV2Field,
   ProjectV2SingleSelectField,
+  Repository,
   UpdateProjectV2ItemFieldValueInput
 } from '@octokit/graphql-schema'
 
@@ -130,6 +131,7 @@ async function updateIssueStatusInProject(
   core.info('Fetching project status field information...')
   const query = await graphqlWithAuth<{
     organization: Organization
+    repository: Repository
   }>(
     `
       query($org: String!, $number: Int!) {
@@ -155,12 +157,24 @@ async function updateIssueStatusInProject(
           }
         }
       }
+      query($org: String!, $repo: String!, $issueNumber: Int!) {
+        repository(name: $repo, owner: $org) {
+          issue: issue(number: $issueNumber) {
+            id
+          }
+        }
+      }
     `,
     {
       org: github.context.repo.owner,
-      number: projectNumber
+      number: projectNumber,
+      issueNumber: issue.id
     }
   )
+
+  const globalProjectId = query.organization.projectV2?.id
+  const globalIssueId = query.repository.issue?.id
+
   const nodes = query.organization.projectV2?.fields.nodes
   const statusField = nodes?.find(
     x => x?.name === 'Status'
@@ -172,12 +186,12 @@ async function updateIssueStatusInProject(
   )?.id
   core.info(`Found review option ID ${reviewOptionId}`)
 
-  if (statusFieldId && reviewOptionId) {
+  if (statusFieldId && reviewOptionId && globalProjectId && globalIssueId) {
     core.info(`Setting field ${statusFieldId} in issue ${issue.id}`)
     const updateIssueInput: UpdateProjectV2ItemFieldValueInput = {
       fieldId: statusFieldId,
-      itemId: issue.id.toString(),
-      projectId: projectNumber.toString(),
+      itemId: globalIssueId,
+      projectId: globalProjectId,
       value: {
         singleSelectOptionId: reviewOptionId
       }
