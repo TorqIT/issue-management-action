@@ -186,7 +186,8 @@ async function updateIssueStatusInProject(
       `
         mutation {
           updateProjectV2ItemFieldValue(input: $input) {
-            ...
+            clientMutationId
+            projectV2Item
           }
         }
       `,
