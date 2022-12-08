@@ -162,7 +162,7 @@ async function updateIssueStatusInProject(
       number: projectNumber
     }
   )
-  core.info(`${query}`)
+  core.info(query.toString())
   const statusFieldId = query.nodes.find(x => x.name === 'Status')?.id
   const reviewOptionId = query.nodes
     .find(x => x.name === 'Status')
