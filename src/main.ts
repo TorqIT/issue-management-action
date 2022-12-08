@@ -189,7 +189,7 @@ async function updateIssueStatusInProject(
     core.info(`Setting field ${statusFieldId} in issue ${issue.id}`)
     const updateIssueInput: UpdateProjectV2ItemFieldValueInput = {
       fieldId: statusFieldId,
-      itemId: issue.id.toString(),
+      itemId: globalIssueId,
       projectId: globalProjectId,
       value: {
         singleSelectOptionId: reviewOptionId
