@@ -162,7 +162,7 @@ async function updateIssueStatusInProject(
       number: projectNumber
     }
   )
-  core.info(JSON.stringify(query.nodes))
+  core.info(JSON.stringify(query.organization.projectV2?.fields.nodes))
   const statusField = query.nodes.find(x => x.name === 'Status')
   const statusFieldId = statusField?.id
   core.info(`Found status field ID ${statusFieldId}`)
