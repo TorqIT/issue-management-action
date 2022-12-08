@@ -26,5 +26,5 @@ jobs:
           GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
         uses: ./
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ env.GITHUB_TOKEN }}
           projectNumber: 10
