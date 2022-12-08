@@ -130,7 +130,6 @@ async function updateIssueStatusInProject(
   core.info('Fetching project status field information...')
   const query = await graphqlWithAuth<{
     organization: Organization
-    nodes: (ProjectV2Field & ProjectV2SingleSelectField)[]
   }>(
     `
       query($org: String!, $number: Int!) {
@@ -162,8 +161,10 @@ async function updateIssueStatusInProject(
       number: projectNumber
     }
   )
-  core.info(JSON.stringify(query.organization.projectV2?.fields.nodes))
-  const statusField = query.nodes.find(x => x.name === 'Status')
+  const nodes = query.organization.projectV2?.fields.nodes
+  const statusField = nodes?.find(
+    x => x?.name === 'Status'
+  ) as ProjectV2SingleSelectField
   const statusFieldId = statusField?.id
   core.info(`Found status field ID ${statusFieldId}`)
   const reviewOptionId = statusField?.options.find(x =>
