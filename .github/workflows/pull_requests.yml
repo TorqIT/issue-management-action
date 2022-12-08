@@ -6,7 +6,7 @@ on:
 jobs:
   pull_requests:
     permissions:
-      metadata: read
+      pull-requests: read
       repository-projects: write
       statuses: read
       issues: write
