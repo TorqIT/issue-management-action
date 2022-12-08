@@ -167,7 +167,7 @@ async function updateIssueStatusInProject(
       org: github.context.repo.owner,
       repo: github.context.repo.repo,
       projectNum: projectNumber,
-      issueNumber: issue.id
+      issueNumber: issue.number
     }
   )
 
@@ -189,7 +189,7 @@ async function updateIssueStatusInProject(
     core.info(`Setting field ${statusFieldId} in issue ${issue.id}`)
     const updateIssueInput: UpdateProjectV2ItemFieldValueInput = {
       fieldId: statusFieldId,
-      itemId: globalIssueId,
+      itemId: issue.id.toString(),
       projectId: globalProjectId,
       value: {
         singleSelectOptionId: reviewOptionId
