@@ -1,7 +1,7 @@
 name: 'build-test'
 on:
   pull_request:
-    types: review_requested
+    types: synchronize
 
 jobs:
   pull_requests:
@@ -9,6 +9,7 @@ jobs:
     steps:
       - name: Build
         run: |
+          pwd
           npm install
           npm run all
 
@@ -16,5 +17,4 @@ jobs:
         uses: ./
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          fromColumnIds: 17997143,17997146
-          toColumnId: 17997150
+          projectNumber: 10
