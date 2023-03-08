@@ -4,7 +4,7 @@ Automatically assigns and moves GitHub Issues that are linked to Pull Requests. 
 
 ### Example usage
 
-In your workflow, use the Action like so. When a review is requested on a Pull Request, the Action will automatically assign any linked issues to the reviewer, and will move those issues from the column defined by `fromColumnIds` to `toColumnId` (e.g. from an "In Progress" column to a "Review" column on your project board). Note that, currently, the only way for the Action to find linked issues is by looking in the Pull Requests body - e.g. "Resolves #31". Column IDs can be found by clicking the 3 dots on a column and clicking "Copy column link".
+In your workflow, use the Action like the example below. When a review is requested on a Pull Request, the Action will automatically assign any linked issues to the reviewer, search for the issues in the columns defined by `fromColumnIds`, and move them to `toColumnId` (e.g. from an "In Progress" column to a "Review" column on your project board). Note that, currently, the only way for the Action to find linked issues is by looking in the Pull Request body - e.g. "Resolves #31". Column IDs can be found by clicking the 3 dots on a column and clicking "Copy column link".
 
 ```yaml
 on:
