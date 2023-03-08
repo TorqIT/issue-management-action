@@ -129,7 +129,58 @@ async function updateIssueStatusInProject(
 ): Promise<void> {
     core.info(`Updating status for issue #${issue.number}...`)
 
-    core.info('Fetching project status field information...')
+    const query = await fetchProjectInformation(graphqlWithAuth, projectNumber);
+
+    const globalProjectId = query.organization.projectV2?.id
+    const globalIssueId = query.organization.projectV2?.items?.nodes?.find(
+        x => (x?.content as GraphQlIssue).number
+    )?.id
+
+    const statusField = query.organization.projectV2?.fields.nodes?.find(
+        x => x?.name === 'Status'
+    ) as ProjectV2SingleSelectField
+    const statusFieldId = statusField?.id
+    core.info(`Found status field ID ${statusFieldId}`)
+    const reviewOptionId = statusField?.options.find(x =>
+        x.name.includes('Review')
+    )?.id
+    core.info(`Found review option ID ${reviewOptionId}`)
+
+    if (statusFieldId && reviewOptionId && globalProjectId && globalIssueId) {
+        core.info(`Setting field ${statusFieldId} in issue ${issue.id}`)
+        const updateIssueInput: UpdateProjectV2ItemFieldValueInput = {
+            fieldId: statusFieldId,
+            itemId: globalIssueId,
+            projectId: globalProjectId,
+            value: {
+                singleSelectOptionId: reviewOptionId
+            }
+        }
+        await graphqlWithAuth<{
+            input: UpdateProjectV2ItemFieldValueInput
+        }>(
+            `
+        mutation($input: UpdateProjectV2ItemFieldValueInput!) {
+          updateProjectV2ItemFieldValue(input: $input) { 
+            clientMutationId
+          }
+        }
+      `,
+            {
+                input: updateIssueInput
+            }
+        )
+        core.info('Successfully updated issue status')
+    } else {
+        core.error(`Error finding project information`)
+    }
+}
+
+async function fetchProjectInformation(
+    graphqlWithAuth: GraphQl,
+    projectNumber: number
+): Promise<{ organization: Organization, repository: Repository } {
+    core.info(`Fetching issues in project ${projectNumber}...`)
     const query = await graphqlWithAuth<{
         organization: Organization
         repository: Repository
@@ -175,50 +226,7 @@ async function updateIssueStatusInProject(
         }
     )
 
-    const globalProjectId = query.organization.projectV2?.id
-    const globalIssueId = query.organization.projectV2?.items?.nodes?.find(
-        x => (x?.content as GraphQlIssue).number
-    )?.id
-
-    const nodes = query.organization.projectV2?.fields.nodes
-    const statusField = nodes?.find(
-        x => x?.name === 'Status'
-    ) as ProjectV2SingleSelectField
-    const statusFieldId = statusField?.id
-    core.info(`Found status field ID ${statusFieldId}`)
-    const reviewOptionId = statusField?.options.find(x =>
-        x.name.includes('Review')
-    )?.id
-    core.info(`Found review option ID ${reviewOptionId}`)
-
-    if (statusFieldId && reviewOptionId && globalProjectId && globalIssueId) {
-        core.info(`Setting field ${statusFieldId} in issue ${issue.id}`)
-        const updateIssueInput: UpdateProjectV2ItemFieldValueInput = {
-            fieldId: statusFieldId,
-            itemId: globalIssueId,
-            projectId: globalProjectId,
-            value: {
-                singleSelectOptionId: reviewOptionId
-            }
-        }
-        await graphqlWithAuth<{
-            input: UpdateProjectV2ItemFieldValueInput
-        }>(
-            `
-        mutation($input: UpdateProjectV2ItemFieldValueInput!) {
-          updateProjectV2ItemFieldValue(input: $input) { 
-            clientMutationId
-          }
-        }
-      `,
-            {
-                input: updateIssueInput
-            }
-        )
-        core.info('Successfully updated issue status')
-    } else {
-        core.error(`Error finding a status field/review column`)
-    }
+    return query;
 }
 
 async function assignIssueToReviewer(
