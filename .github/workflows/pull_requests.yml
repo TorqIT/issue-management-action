@@ -1,4 +1,5 @@
-name: 'build-test'
+name: 'Run action on PRs to test the action'
+
 on:
   pull_request:
     types: review_requested
@@ -12,7 +13,7 @@ jobs:
           npm install
           npm run all
 
-      - name: Run test
+      - name: Run
         uses: ./
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
