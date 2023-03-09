@@ -3,7 +3,7 @@ import * as github from '@actions/github'
 import { components } from '@octokit/openapi-types'
 import { graphql } from '@octokit/graphql'
 import type { graphql as GraphQl } from '@octokit/graphql/dist-types/types'
-import { PullRequestReviewSubmittedEvent, PullRequestReviewRequestedEvent } from '@octokit/webhooks-types'
+import { User, PullRequestReviewSubmittedEvent, PullRequestReviewRequestedEvent } from '@octokit/webhooks-types'
 import { Octokit } from '@octokit/rest'
 import {
     Organization,
@@ -40,7 +40,7 @@ async function run(): Promise<void> {
         const event = github.context.payload as PullRequestReviewRequestedEvent;
         issues = await extractIssuesFromPullRequestBody(octokit, event.pull_request.body!);
         core.info(`Pull request reviewers: ${JSON.stringify(event.pull_request.requested_reviewers)}`);
-        const reviewers = <string[]>event.pull_request.requested_reviewers.filter(r => r !== undefined).map(r => r.id.toString());
+        const reviewers = event.pull_request.requested_reviewers.map(r => (r as User).login);
         toBeAssigned = reviewers;
         status = Status.Review;
     } else if (github.context.eventName === 'pull_request_review') {
