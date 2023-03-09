@@ -129,7 +129,7 @@ async function updateIssueStatusInProject(
 ): Promise<void> {
     core.info(`Updating status for issue #${issue.number}...`)
 
-    const query = await fetchProjectInformation(graphqlWithAuth, projectNumber);
+    const query = await fetchProjectInformation(graphqlWithAuth, projectNumber, issue.number);
 
     const globalProjectId = query.organization.projectV2?.id
     const globalIssueId = query.organization.projectV2?.items?.nodes?.find(
@@ -178,7 +178,8 @@ async function updateIssueStatusInProject(
 
 async function fetchProjectInformation(
     graphqlWithAuth: GraphQl,
-    projectNumber: number
+    projectNumber: number,
+    issueNumber: number
 ): Promise<{ organization: Organization, repository: Repository } {
     core.info(`Fetching issues in project ${projectNumber}...`)
     const query = await graphqlWithAuth<{
@@ -186,7 +187,7 @@ async function fetchProjectInformation(
         repository: Repository
     }>(
         `
-      query GetIssueInformation($org: String!, $projectNum: Int!) {
+      query GetIssueInformation($org: String!, $projectNum: Int!, $issueNumber: Int!) {
         organization(login: $org) {
           projectV2(number: $projectNum) {
             id
@@ -206,7 +207,7 @@ async function fetchProjectInformation(
                 }
               }
             }
-            items(first:100) {
+            items(where: {number: {_eq: issueNumber}}) {
               nodes {
                 id
                 content {
@@ -222,7 +223,8 @@ async function fetchProjectInformation(
     `,
         {
             org: github.context.repo.owner,
-            projectNum: projectNumber
+            projectNum: projectNumber,
+            issueNumber: issueNumber
         }
     )
 
