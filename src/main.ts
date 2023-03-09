@@ -5,12 +5,12 @@ import { graphql } from '@octokit/graphql'
 import type { graphql as GraphQl } from '@octokit/graphql/dist-types/types'
 import { Octokit } from '@octokit/rest'
 import {
+    Maybe,
     Organization,
-    ProjectV2Field,
+    ProjectV2,
     ProjectV2SingleSelectField,
     Repository,
     UpdateProjectV2ItemFieldValueInput,
-    Issue as GraphQlIssue
 } from '@octokit/graphql-schema'
 
 type Issue = components['schemas']['issue']
@@ -129,29 +129,23 @@ async function updateIssueStatusInProject(
 ): Promise<void> {
     core.info(`Updating status for issue #${issue.number}...`)
 
-    const query = await fetchProjectInformation(graphqlWithAuth, projectNumber, issue.number);
+    const project = await fetchProjectInformation(graphqlWithAuth, projectNumber);
 
-    const globalProjectId = query.organization.projectV2?.id
-    const globalIssueId = query.organization.projectV2?.items?.nodes?.find(
-        x => (x?.content as GraphQlIssue).number
-    )?.id
-
-    const statusField = query.organization.projectV2?.fields.nodes?.find(
+    const projectId = project?.id
+    const statusField = project?.fields.nodes?.find(
         x => x?.name === 'Status'
     ) as ProjectV2SingleSelectField
     const statusFieldId = statusField?.id
-    core.info(`Found status field ID ${statusFieldId}`)
     const reviewOptionId = statusField?.options.find(x =>
         x.name.includes('Review')
     )?.id
-    core.info(`Found review option ID ${reviewOptionId}`)
 
-    if (statusFieldId && reviewOptionId && globalProjectId && globalIssueId) {
+    if (statusFieldId && reviewOptionId && projectId) {
         core.info(`Setting field ${statusFieldId} in issue ${issue.id}`)
         const updateIssueInput: UpdateProjectV2ItemFieldValueInput = {
             fieldId: statusFieldId,
-            itemId: globalIssueId,
-            projectId: globalProjectId,
+            itemId: issue.node_id,
+            projectId: projectId,
             value: {
                 singleSelectOptionId: reviewOptionId
             }
@@ -179,15 +173,14 @@ async function updateIssueStatusInProject(
 async function fetchProjectInformation(
     graphqlWithAuth: GraphQl,
     projectNumber: number,
-    issueNumber: number
-): Promise<{ organization: Organization, repository: Repository }> {
+): Promise<Maybe<ProjectV2> | undefined> {
     core.info(`Fetching issues in project ${projectNumber}...`)
     const query = await graphqlWithAuth<{
         organization: Organization
         repository: Repository
     }>(
         `
-      query GetIssueInformation($org: String!, $projectNum: Int!, $issueNumber: Int!) {
+      query GetIssueInformation($org: String!, $projectNum: Int!) {
         organization(login: $org) {
           projectV2(number: $projectNum) {
             id
@@ -207,16 +200,6 @@ async function fetchProjectInformation(
                 }
               }
             }
-            items(where: {number: {_eq: $issueNumber}}) {
-              nodes {
-                id
-                content {
-                  ... on Issue {
-                    number
-                  }
-                }
-              }
-            }
           }
         }
       }
@@ -224,11 +207,10 @@ async function fetchProjectInformation(
         {
             org: github.context.repo.owner,
             projectNum: projectNumber,
-            issueNumber: issueNumber
         }
     )
 
-    return query;
+    return query.organization.projectV2;
 }
 
 async function assignIssueToReviewer(
