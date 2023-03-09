@@ -155,7 +155,7 @@ async function updateIssueStatusInProject(
 
     const issues = await fetchIssuesInProject(graphqlWithAuth, projectNumber);
     const projectIssueId = issues.find(
-        x => (x?.content as GraphQlIssue).number
+        x => (x?.content as GraphQlIssue).number === issue.number
     )?.id
     core.info(`Found project issue with ID ${projectIssueId} for issue #${issue.number}`);
 

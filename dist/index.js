@@ -154,7 +154,7 @@ function updateIssueStatusInProject(graphqlWithAuth, issue, projectNumber, statu
         const statusFieldId = statusField === null || statusField === void 0 ? void 0 : statusField.id;
         const statusOptionId = (_b = statusField === null || statusField === void 0 ? void 0 : statusField.options.find(x => x.name.includes(status))) === null || _b === void 0 ? void 0 : _b.id;
         const issues = yield fetchIssuesInProject(graphqlWithAuth, projectNumber);
-        const projectIssueId = (_c = issues.find(x => (x === null || x === void 0 ? void 0 : x.content).number)) === null || _c === void 0 ? void 0 : _c.id;
+        const projectIssueId = (_c = issues.find(x => (x === null || x === void 0 ? void 0 : x.content).number === issue.number)) === null || _c === void 0 ? void 0 : _c.id;
         core.info(`Found project issue with ID ${projectIssueId} for issue #${issue.number}`);
         if (statusFieldId && statusOptionId && projectId && projectIssueId) {
             core.info(`Setting field ${statusFieldId} in issue ${issue.id}`);
