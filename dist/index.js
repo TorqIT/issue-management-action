@@ -1,6 +1,98 @@
 require('./sourcemap-register.js');/******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
+/***/ 4273:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.fetchLinkedIssues = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+const github = __importStar(__nccwpck_require__(5438));
+/**
+ * Fetches issues linked to the given pull request.
+ */
+function fetchLinkedIssues(octokit, pullRequestBody) {
+    return __awaiter(this, void 0, void 0, function* () {
+        // Currently, the sanest way to get linked issues is to look for them in the pull request body
+        core.info(`Pull request body: ${pullRequestBody}`);
+        const issueNumbers = pullRequestBody === null || pullRequestBody === void 0 ? void 0 : pullRequestBody.match(/#\d+/g);
+        if (issueNumbers) {
+            core.info(`Found ${issueNumbers.length} issue numbers in pull request body: ${issueNumbers}`);
+        }
+        else {
+            core.info(`No linked issues found in pull request body`);
+            return [];
+        }
+        const issues = [];
+        for (const issueNumber of issueNumbers) {
+            core.info(`Issue number: ${issueNumber}`);
+            // Parse the actual number (without the #)
+            const parsed = issueNumber.replace(/[^0-9]/g, '');
+            if (parsed) {
+                const issue = yield fetchIssue(octokit, parsed);
+                if (issue) {
+                    issues.push(issue);
+                }
+            }
+        }
+        return issues;
+    });
+}
+exports.fetchLinkedIssues = fetchLinkedIssues;
+function fetchIssue(octokit, issueNumber) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            core.info(`Fetching issue #${issueNumber}`);
+            const issue = yield octokit.rest.issues.get({
+                owner: github.context.repo.owner,
+                repo: github.context.repo.repo,
+                issue_number: parseInt(issueNumber)
+            });
+            core.info(`Found valid issue #${issueNumber}`);
+            return issue.data;
+        }
+        catch (e) {
+            if (e instanceof Error)
+                core.error(e.message);
+            core.info(`No valid issue found for #${issueNumber}`);
+            return null;
+        }
+    });
+}
+
+
+/***/ }),
+
 /***/ 3109:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -37,130 +129,147 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
-const graphql_1 = __nccwpck_require__(8467);
 const rest_1 = __nccwpck_require__(5375);
-var Status;
-(function (Status) {
-    Status["Review"] = "Review";
-    Status["InProgress"] = "In Progress";
-})(Status || (Status = {}));
+const fetchLinkedIssues_1 = __nccwpck_require__(4273);
+const updateIssueStatus_1 = __nccwpck_require__(6807);
 function run() {
-    var _a;
     return __awaiter(this, void 0, void 0, function* () {
         const octokit = new rest_1.Octokit({
             auth: core.getInput('token')
         });
-        const graphqlWithAuth = graphql_1.graphql.defaults({
-            headers: {
-                authorization: `token ${core.getInput('token')}`
+        const eventInfo = yield extractEventInformation(octokit);
+        if (eventInfo) {
+            for (const issue of eventInfo.linkedIssues) {
+                yield updateAssignees(octokit, issue, eventInfo.toBeAssigned);
+                yield (0, updateIssueStatus_1.updateIssueStatus)(issue.number, Number(core.getInput('projectNumber')), eventInfo.statusToBeSet);
             }
+        }
+    });
+}
+function updateAssignees(octokit, issue, assignees) {
+    var _a;
+    return __awaiter(this, void 0, void 0, function* () {
+        core.info(`Unassigning all current assignees from #${issue.number}`);
+        yield octokit.rest.issues.removeAssignees({
+            owner: github.context.repo.owner,
+            repo: github.context.repo.repo,
+            issue_number: issue.number,
+            assignees: (_a = issue.assignees) === null || _a === void 0 ? void 0 : _a.map(a => a.login)
         });
+        core.info(`Assigning issue #${issue.number} to ${assignees}`);
+        yield octokit.rest.issues.addAssignees({
+            owner: github.context.repo.owner,
+            repo: github.context.repo.repo,
+            issue_number: issue.number,
+            assignees: assignees
+        });
+    });
+}
+function extractEventInformation(octokit) {
+    return __awaiter(this, void 0, void 0, function* () {
         let toBeAssigned = [];
-        let issues = [];
-        let status;
+        let linkedIssues = [];
+        let statusToBeSet;
         if (github.context.eventName === 'pull_request'
             && github.context.payload.action === 'review_requested') {
             const event = github.context.payload;
             core.info(`Review was requested on pull request #${event.pull_request.number} by ${event.sender.login}`);
-            issues = yield extractIssuesFromPullRequestBody(octokit, event.pull_request.body);
+            linkedIssues = yield (0, fetchLinkedIssues_1.fetchLinkedIssues)(octokit, event.pull_request.body);
             const reviewers = event.pull_request.requested_reviewers.map(r => r.login);
             core.info(`Requested reviewers: ${reviewers}`);
             toBeAssigned = reviewers;
-            status = Status.Review;
+            statusToBeSet = updateIssueStatus_1.Status.Review;
         }
         else if (github.context.eventName === 'pull_request_review') {
             const event = github.context.payload;
             if (event.review.state === 'changes_requested') {
                 core.info(`Changes were requested on pull request #${event.pull_request.number}`);
-                issues = yield extractIssuesFromPullRequestBody(octokit, event.pull_request.body);
+                linkedIssues = yield (0, fetchLinkedIssues_1.fetchLinkedIssues)(octokit, event.pull_request.body);
                 toBeAssigned = [event.pull_request.user.login];
-                status = Status.InProgress;
+                statusToBeSet = updateIssueStatus_1.Status.InProgress;
             }
             else {
                 core.info("Submitted review had no requested changes, so exiting");
                 return;
             }
         }
-        for (const issue of issues) {
-            core.info(`Unassigning all current assignees from #${issue.number}`);
-            yield octokit.rest.issues.removeAssignees({
-                owner: github.context.repo.owner,
-                repo: github.context.repo.repo,
-                issue_number: issue.number,
-                assignees: (_a = issue.assignees) === null || _a === void 0 ? void 0 : _a.map(a => a.login)
-            });
-            core.info(`Assigning issue #${issue.number} to ${toBeAssigned}`);
-            yield octokit.rest.issues.addAssignees({
-                owner: github.context.repo.owner,
-                repo: github.context.repo.repo,
-                issue_number: issue.number,
-                assignees: toBeAssigned
-            });
-            yield updateIssueStatusInProject(graphqlWithAuth, issue, Number(core.getInput('projectNumber')), status);
-        }
+        return {
+            toBeAssigned: toBeAssigned,
+            linkedIssues: linkedIssues,
+            statusToBeSet: statusToBeSet
+        };
     });
 }
-function extractIssuesFromPullRequestBody(octokit, pullRequestBody) {
-    return __awaiter(this, void 0, void 0, function* () {
-        // Currently, the sanest way to get linked issues is to look for them in the pull request body
-        core.info(`Pull request body: ${pullRequestBody}`);
-        const issueNumbers = pullRequestBody === null || pullRequestBody === void 0 ? void 0 : pullRequestBody.match(/#\d+/g);
-        if (issueNumbers) {
-            core.info(`Found ${issueNumbers.length} issue numbers in pull request body: ${issueNumbers}`);
-        }
-        else {
-            core.info(`No linked issues found in pull request body`);
-            return [];
-        }
-        const issues = [];
-        for (const issueNumber of issueNumbers) {
-            core.info(`Issue number: ${issueNumber}`);
-            // Parse the actual number (without the #)
-            const parsed = issueNumber.replace(/[^0-9]/g, '');
-            if (parsed) {
-                const issue = yield fetchIssue(octokit, parsed);
-                if (issue) {
-                    issues.push(issue);
-                }
-            }
-        }
-        return issues;
+run();
+
+
+/***/ }),
+
+/***/ 6807:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
-}
-function fetchIssue(octokit, issueNumber) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            core.info(`Fetching issue #${issueNumber}`);
-            const issue = yield octokit.rest.issues.get({
-                owner: github.context.repo.owner,
-                repo: github.context.repo.repo,
-                issue_number: parseInt(issueNumber)
-            });
-            core.info(`Found valid issue #${issueNumber}`);
-            return issue.data;
-        }
-        catch (e) {
-            if (e instanceof Error)
-                core.error(e.message);
-            core.info(`No valid issue found for #${issueNumber}`);
-            return null;
-        }
-    });
-}
-function updateIssueStatusInProject(graphqlWithAuth, issue, projectNumber, status) {
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.updateIssueStatus = exports.Status = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+const github = __importStar(__nccwpck_require__(5438));
+const graphql_1 = __nccwpck_require__(8467);
+var Status;
+(function (Status) {
+    Status["Review"] = "Review";
+    Status["InProgress"] = "In Progress";
+})(Status = exports.Status || (exports.Status = {}));
+/**
+ * Updates the given issue in the given project to the given status.
+ */
+function updateIssueStatus(issueNumber, projectNumber, status) {
     var _a, _b, _c;
     return __awaiter(this, void 0, void 0, function* () {
-        core.info(`Updating status for issue #${issue.number}...`);
+        core.info(`Updating status for issue #${issueNumber}...`);
+        const graphqlWithAuth = graphql_1.graphql.defaults({
+            headers: {
+                authorization: `token ${core.getInput('token')}`
+            }
+        });
         const project = yield fetchProjectInformation(graphqlWithAuth, projectNumber);
         const projectId = project === null || project === void 0 ? void 0 : project.id;
         const statusField = (_a = project === null || project === void 0 ? void 0 : project.fields.nodes) === null || _a === void 0 ? void 0 : _a.find(x => (x === null || x === void 0 ? void 0 : x.name) === 'Status');
         const statusFieldId = statusField === null || statusField === void 0 ? void 0 : statusField.id;
         const statusOptionId = (_b = statusField === null || statusField === void 0 ? void 0 : statusField.options.find(x => x.name.includes(status))) === null || _b === void 0 ? void 0 : _b.id;
         const issues = yield fetchIssuesInProject(graphqlWithAuth, projectNumber);
-        const projectIssueId = (_c = issues.find(x => (x === null || x === void 0 ? void 0 : x.content).number === issue.number)) === null || _c === void 0 ? void 0 : _c.id;
-        core.info(`Found project issue with ID ${projectIssueId} for issue #${issue.number}`);
+        const projectIssueId = (_c = issues.find(x => (x === null || x === void 0 ? void 0 : x.content).number === issueNumber)) === null || _c === void 0 ? void 0 : _c.id;
+        core.info(`Found project issue with ID ${projectIssueId} for issue #${issueNumber}`);
         if (statusFieldId && statusOptionId && projectId && projectIssueId) {
-            core.info(`Setting field ${statusFieldId} in issue ${issue.id}`);
+            core.info(`Setting field ${statusFieldId} in issue ${projectIssueId}`);
             const updateIssueInput = {
                 fieldId: statusFieldId,
                 itemId: projectIssueId,
@@ -185,6 +294,7 @@ function updateIssueStatusInProject(graphqlWithAuth, issue, projectNumber, statu
         }
     });
 }
+exports.updateIssueStatus = updateIssueStatus;
 function fetchProjectInformation(graphqlWithAuth, projectNumber) {
     return __awaiter(this, void 0, void 0, function* () {
         core.info(`Fetching project information for project ${projectNumber}...`);
@@ -263,7 +373,6 @@ function fetchIssuesInProject(graphqlWithAuth, projectNumber) {
         return issues;
     });
 }
-run();
 
 
 /***/ }),
