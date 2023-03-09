@@ -10,7 +10,11 @@ import {
     ProjectV2SingleSelectField,
     Repository,
     UpdateProjectV2ItemFieldValueInput,
-    Issue as GraphQlIssue
+    Issue as GraphQlIssue,
+    Maybe,
+    ProjectV2,
+    PageInfo,
+    ProjectV2Item
 } from '@octokit/graphql-schema'
 
 type Issue = components['schemas']['issue']
@@ -131,14 +135,8 @@ async function updateIssueStatusInProject(
 
     const project = await fetchProjectInformation(graphqlWithAuth, projectNumber);
 
-    core.info(`Issue node ID: ${issue.node_id}`);
-    const projectV2IssueId = project.organization.projectV2?.items.nodes?.find(
-        x => (x?.content as GraphQlIssue).number
-    )?.id
-    core.info(`GraphQL issue node ID: ${projectV2IssueId}`);
-
-    const projectId = project?.organization?.projectV2?.id
-    const statusField = project?.organization?.projectV2?.fields.nodes?.find(
+    const projectId = project?.id
+    const statusField = project?.fields.nodes?.find(
         x => x?.name === 'Status'
     ) as ProjectV2SingleSelectField
     const statusFieldId = statusField?.id
@@ -146,11 +144,17 @@ async function updateIssueStatusInProject(
         x.name.includes('Review')
     )?.id
 
-    if (statusFieldId && reviewOptionId && projectId) {
+    const issues = await fetchIssuesInProject(graphqlWithAuth, projectNumber);
+    const projectIssueId = issues.find(
+        x => (x?.content as GraphQlIssue).number
+    )?.id
+    core.info(`Found project issue with ID ${projectIssueId} for issue #${issue.number}`);
+
+    if (statusFieldId && reviewOptionId && projectId && projectIssueId) {
         core.info(`Setting field ${statusFieldId} in issue ${issue.id}`)
         const updateIssueInput: UpdateProjectV2ItemFieldValueInput = {
             fieldId: statusFieldId,
-            itemId: issue.node_id,
+            itemId: projectIssueId,
             projectId: projectId,
             value: {
                 singleSelectOptionId: reviewOptionId
@@ -172,21 +176,20 @@ async function updateIssueStatusInProject(
         )
         core.info('Successfully updated issue status')
     } else {
-        core.error(`Error finding project information`)
+        core.error(`Error finding project or information`)
     }
 }
 
 async function fetchProjectInformation(
     graphqlWithAuth: GraphQl,
     projectNumber: number,
-): Promise<{ organization: Organization, repository: Repository }> {
-    core.info(`Fetching issues in project ${projectNumber}...`)
+): Promise<Maybe<ProjectV2> | undefined> {
+    core.info(`Fetching project information for project ${projectNumber}...`)
     const query = await graphqlWithAuth<{
         organization: Organization
-        repository: Repository
     }>(
         `
-      query GetIssueInformation($org: String!, $projectNum: Int!) {
+      query getProjectInformation($org: String!, $projectNum: Int!) {
         organization(login: $org) {
           projectV2(number: $projectNum) {
             id
@@ -206,16 +209,6 @@ async function fetchProjectInformation(
                 }
               }
             }
-            items(first: 100) {
-              nodes {
-                id
-                content {
-                  ... on Issue {
-                    number
-                  }
-                }
-              }
-            }
           }
         }
       }
@@ -226,7 +219,63 @@ async function fetchProjectInformation(
         }
     )
 
-    return query;
+    return query.organization.projectV2;
+}
+
+async function fetchIssuesInProject(
+    graphqlWithAuth: GraphQl,
+    projectNumber: number,
+) {
+    core.info(`Fetching issues in project ${projectNumber}...`)
+
+    let issues: Maybe<ProjectV2Item>[] = [];
+
+    let cursor = "";
+    let hasNextPage = true;
+
+    while (hasNextPage) {
+        const query = await graphqlWithAuth<{
+            organization: Organization
+        }>(
+            `
+          query getIssues($org: String!, $projectNum: Int!, $endCursor: String!) {
+            organization(login: $org) {
+              projectV2(number: $projectNum) {
+                items(first: 1, after: $endCursor) {
+                  pageInfo {
+                    hasNextPage
+                    endCursor
+                  }
+                  nodes {
+                    id
+                    content {
+                      ... on Issue {
+                        number
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        `,
+            {
+                org: github.context.repo.owner,
+                projectNum: projectNumber,
+                endCursor: cursor
+            }
+        );
+
+        core.debug(`Fetched page with ${query.organization?.projectV2?.items?.nodes?.length} issues`);
+        issues = [...issues, ...query.organization?.projectV2?.items?.nodes!];
+
+        const pageInfo = query.organization?.projectV2?.items?.pageInfo!;
+        cursor = pageInfo.endCursor!;
+        hasNextPage = pageInfo.hasNextPage!;
+    }
+
+    core.info(`Fetched ${issues.length} total`);
+    return issues;
 }
 
 async function assignIssueToReviewer(

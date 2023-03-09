@@ -133,22 +133,22 @@ function fetchIssue(octokit, issueNumber) {
     });
 }
 function updateIssueStatusInProject(graphqlWithAuth, issue, projectNumber) {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j;
+    var _a, _b, _c;
     return __awaiter(this, void 0, void 0, function* () {
         core.info(`Updating status for issue #${issue.number}...`);
         const project = yield fetchProjectInformation(graphqlWithAuth, projectNumber);
-        core.info(`Issue node ID: ${issue.node_id}`);
-        const projectV2IssueId = (_c = (_b = (_a = project.organization.projectV2) === null || _a === void 0 ? void 0 : _a.items.nodes) === null || _b === void 0 ? void 0 : _b.find(x => (x === null || x === void 0 ? void 0 : x.content).number)) === null || _c === void 0 ? void 0 : _c.id;
-        core.info(`GraphQL issue node ID: ${projectV2IssueId}`);
-        const projectId = (_e = (_d = project === null || project === void 0 ? void 0 : project.organization) === null || _d === void 0 ? void 0 : _d.projectV2) === null || _e === void 0 ? void 0 : _e.id;
-        const statusField = (_h = (_g = (_f = project === null || project === void 0 ? void 0 : project.organization) === null || _f === void 0 ? void 0 : _f.projectV2) === null || _g === void 0 ? void 0 : _g.fields.nodes) === null || _h === void 0 ? void 0 : _h.find(x => (x === null || x === void 0 ? void 0 : x.name) === 'Status');
+        const projectId = project === null || project === void 0 ? void 0 : project.id;
+        const statusField = (_a = project === null || project === void 0 ? void 0 : project.fields.nodes) === null || _a === void 0 ? void 0 : _a.find(x => (x === null || x === void 0 ? void 0 : x.name) === 'Status');
         const statusFieldId = statusField === null || statusField === void 0 ? void 0 : statusField.id;
-        const reviewOptionId = (_j = statusField === null || statusField === void 0 ? void 0 : statusField.options.find(x => x.name.includes('Review'))) === null || _j === void 0 ? void 0 : _j.id;
-        if (statusFieldId && reviewOptionId && projectId) {
+        const reviewOptionId = (_b = statusField === null || statusField === void 0 ? void 0 : statusField.options.find(x => x.name.includes('Review'))) === null || _b === void 0 ? void 0 : _b.id;
+        const issues = yield fetchIssuesInProject(graphqlWithAuth, projectNumber);
+        const projectIssueId = (_c = issues.find(x => (x === null || x === void 0 ? void 0 : x.content).number)) === null || _c === void 0 ? void 0 : _c.id;
+        core.info(`Found project issue with ID ${projectIssueId} for issue #${issue.number}`);
+        if (statusFieldId && reviewOptionId && projectId && projectIssueId) {
             core.info(`Setting field ${statusFieldId} in issue ${issue.id}`);
             const updateIssueInput = {
                 fieldId: statusFieldId,
-                itemId: issue.node_id,
+                itemId: projectIssueId,
                 projectId: projectId,
                 value: {
                     singleSelectOptionId: reviewOptionId
@@ -166,15 +166,15 @@ function updateIssueStatusInProject(graphqlWithAuth, issue, projectNumber) {
             core.info('Successfully updated issue status');
         }
         else {
-            core.error(`Error finding project information`);
+            core.error(`Error finding project or information`);
         }
     });
 }
 function fetchProjectInformation(graphqlWithAuth, projectNumber) {
     return __awaiter(this, void 0, void 0, function* () {
-        core.info(`Fetching issues in project ${projectNumber}...`);
+        core.info(`Fetching project information for project ${projectNumber}...`);
         const query = yield graphqlWithAuth(`
-      query GetIssueInformation($org: String!, $projectNum: Int!) {
+      query getProjectInformation($org: String!, $projectNum: Int!) {
         organization(login: $org) {
           projectV2(number: $projectNum) {
             id
@@ -194,16 +194,6 @@ function fetchProjectInformation(graphqlWithAuth, projectNumber) {
                 }
               }
             }
-            items(first: 100) {
-              nodes {
-                id
-                content {
-                  ... on Issue {
-                    number
-                  }
-                }
-              }
-            }
           }
         }
       }
@@ -211,7 +201,51 @@ function fetchProjectInformation(graphqlWithAuth, projectNumber) {
             org: github.context.repo.owner,
             projectNum: projectNumber,
         });
-        return query;
+        return query.organization.projectV2;
+    });
+}
+function fetchIssuesInProject(graphqlWithAuth, projectNumber) {
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
+    return __awaiter(this, void 0, void 0, function* () {
+        core.info(`Fetching issues in project ${projectNumber}...`);
+        let issues = [];
+        let cursor = "";
+        let hasNextPage = true;
+        while (hasNextPage) {
+            const query = yield graphqlWithAuth(`
+          query getIssues($org: String!, $projectNum: Int!, $endCursor: String!) {
+            organization(login: $org) {
+              projectV2(number: $projectNum) {
+                items(first: 1, after: $endCursor) {
+                  pageInfo {
+                    hasNextPage
+                    endCursor
+                  }
+                  nodes {
+                    id
+                    content {
+                      ... on Issue {
+                        number
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        `, {
+                org: github.context.repo.owner,
+                projectNum: projectNumber,
+                endCursor: cursor
+            });
+            core.debug(`Fetched page with ${(_d = (_c = (_b = (_a = query.organization) === null || _a === void 0 ? void 0 : _a.projectV2) === null || _b === void 0 ? void 0 : _b.items) === null || _c === void 0 ? void 0 : _c.nodes) === null || _d === void 0 ? void 0 : _d.length} issues`);
+            issues = [...issues, ...(_g = (_f = (_e = query.organization) === null || _e === void 0 ? void 0 : _e.projectV2) === null || _f === void 0 ? void 0 : _f.items) === null || _g === void 0 ? void 0 : _g.nodes];
+            const pageInfo = (_k = (_j = (_h = query.organization) === null || _h === void 0 ? void 0 : _h.projectV2) === null || _j === void 0 ? void 0 : _j.items) === null || _k === void 0 ? void 0 : _k.pageInfo;
+            cursor = pageInfo.endCursor;
+            hasNextPage = pageInfo.hasNextPage;
+        }
+        core.info(`Fetched ${issues.length} total`);
+        return issues;
     });
 }
 function assignIssueToReviewer(octokit, issue, reviewers) {
