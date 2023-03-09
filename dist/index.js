@@ -39,6 +39,11 @@ const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
 const graphql_1 = __nccwpck_require__(8467);
 const rest_1 = __nccwpck_require__(5375);
+var Operation;
+(function (Operation) {
+    Operation["ReviewRequested"] = "review_requested";
+    Operation["ChangesRequested"] = "changes_requested";
+})(Operation || (Operation = {}));
 function run() {
     var _a;
     return __awaiter(this, void 0, void 0, function* () {
@@ -53,16 +58,31 @@ function run() {
         const reviewers = yield fetchRequestedReviewers(octokit);
         const issues = yield extractIssuesFromPullRequestBody(octokit, (_a = github.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.body);
         for (const issue of issues) {
-            // Unassign the issue from the PR creator, if possible
-            core.info(`Unassigning ${github.context.actor} from #${issue.number}`);
+            let toBeAssigned;
+            let toBeUnassigned;
+            if (core.getInput('operation') === Operation.ReviewRequested) {
+                toBeAssigned = reviewers;
+                toBeUnassigned = [github.context.actor];
+            }
+            else if (core.getInput('operation') === Operation.ChangesRequested) {
+                toBeAssigned = [github.context.actor];
+                toBeUnassigned = reviewers;
+            }
+            core.info(`Unassigning ${toBeUnassigned} from #${issue.number}`);
             yield octokit.rest.issues.removeAssignees({
                 owner: github.context.repo.owner,
                 repo: github.context.repo.repo,
                 issue_number: issue.number,
-                assignees: [github.context.actor]
+                assignees: toBeUnassigned
             });
-            yield assignIssueToReviewer(octokit, issue, reviewers);
-            yield updateIssueStatusInProject(graphqlWithAuth, issue, Number(core.getInput('projectNumber')));
+            core.info(`Assigning issue #${issue.number} to ${toBeAssigned}`);
+            yield octokit.rest.issues.addAssignees({
+                owner: github.context.repo.owner,
+                repo: github.context.repo.repo,
+                issue_number: issue.number,
+                assignees: toBeAssigned
+            });
+            yield updateIssueStatusInProject(graphqlWithAuth, issue, Number(core.getInput('projectNumber')), core.getInput('operation'));
         }
     });
 }
@@ -132,7 +152,7 @@ function fetchIssue(octokit, issueNumber) {
         }
     });
 }
-function updateIssueStatusInProject(graphqlWithAuth, issue, projectNumber) {
+function updateIssueStatusInProject(graphqlWithAuth, issue, projectNumber, operation) {
     var _a, _b, _c;
     return __awaiter(this, void 0, void 0, function* () {
         core.info(`Updating status for issue #${issue.number}...`);
@@ -140,18 +160,19 @@ function updateIssueStatusInProject(graphqlWithAuth, issue, projectNumber) {
         const projectId = project === null || project === void 0 ? void 0 : project.id;
         const statusField = (_a = project === null || project === void 0 ? void 0 : project.fields.nodes) === null || _a === void 0 ? void 0 : _a.find(x => (x === null || x === void 0 ? void 0 : x.name) === 'Status');
         const statusFieldId = statusField === null || statusField === void 0 ? void 0 : statusField.id;
-        const reviewOptionId = (_b = statusField === null || statusField === void 0 ? void 0 : statusField.options.find(x => x.name.includes('Review'))) === null || _b === void 0 ? void 0 : _b.id;
+        const statusSearchString = operation === Operation.ReviewRequested ? 'Review' : 'In Progress';
+        const statusOptionId = (_b = statusField === null || statusField === void 0 ? void 0 : statusField.options.find(x => x.name.includes(statusSearchString))) === null || _b === void 0 ? void 0 : _b.id;
         const issues = yield fetchIssuesInProject(graphqlWithAuth, projectNumber);
         const projectIssueId = (_c = issues.find(x => (x === null || x === void 0 ? void 0 : x.content).number)) === null || _c === void 0 ? void 0 : _c.id;
         core.info(`Found project issue with ID ${projectIssueId} for issue #${issue.number}`);
-        if (statusFieldId && reviewOptionId && projectId && projectIssueId) {
+        if (statusFieldId && statusOptionId && projectId && projectIssueId) {
             core.info(`Setting field ${statusFieldId} in issue ${issue.id}`);
             const updateIssueInput = {
                 fieldId: statusFieldId,
                 itemId: projectIssueId,
                 projectId: projectId,
                 value: {
-                    singleSelectOptionId: reviewOptionId
+                    singleSelectOptionId: statusOptionId
                 }
             };
             yield graphqlWithAuth(`
@@ -166,7 +187,7 @@ function updateIssueStatusInProject(graphqlWithAuth, issue, projectNumber) {
             core.info('Successfully updated issue status');
         }
         else {
-            core.error(`Error finding project or information`);
+            core.error(`Error finding project or issue information`);
         }
     });
 }
@@ -216,7 +237,7 @@ function fetchIssuesInProject(graphqlWithAuth, projectNumber) {
           query getIssues($org: String!, $projectNum: Int!, $endCursor: String!) {
             organization(login: $org) {
               projectV2(number: $projectNum) {
-                items(first: 1, after: $endCursor) {
+                items(first: 100, after: $endCursor) {
                   pageInfo {
                     hasNextPage
                     endCursor
@@ -246,18 +267,6 @@ function fetchIssuesInProject(graphqlWithAuth, projectNumber) {
         }
         core.info(`Fetched ${issues.length} total issues`);
         return issues;
-    });
-}
-function assignIssueToReviewer(octokit, issue, reviewers) {
-    return __awaiter(this, void 0, void 0, function* () {
-        core.info(`Assigning reviewers ${reviewers} to issue #${issue.number}`);
-        yield octokit.rest.issues.addAssignees({
-            owner: github.context.repo.owner,
-            repo: github.context.repo.repo,
-            issue_number: issue.number,
-            assignees: reviewers
-        });
-        core.info(`Successfully assigned issue #${issue.number}`);
     });
 }
 run();

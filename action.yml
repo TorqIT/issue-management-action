@@ -11,6 +11,13 @@ inputs:
   projectNumber:
     required: true
     description: 'Project number. Can be found in the URL of your project (i.e. https://github.com/orgs/<your-org>/projects/<project-number>)'
+  operation:
+    required: true
+    type: choice
+    description: The operation that triggered the workflow
+    options:
+      - review_requested
+      - changes_requested
 runs:
   using: 'node16'
   main: 'dist/index.js'

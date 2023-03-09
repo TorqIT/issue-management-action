@@ -29,3 +29,4 @@ jobs:
         with:
           token: ${{ env.GITHUB_TOKEN }}
           projectNumber: 10
+          operation: changes_requested

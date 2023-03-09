@@ -16,6 +16,11 @@ import {
 
 type Issue = components['schemas']['issue']
 
+enum Operation {
+    ReviewRequested = 'review_requested',
+    ChangesRequested = 'changes_requested'
+}
+
 async function run(): Promise<void> {
     const octokit = new Octokit({
         auth: core.getInput('token')
@@ -35,21 +40,37 @@ async function run(): Promise<void> {
     )
 
     for (const issue of issues) {
-        // Unassign the issue from the PR creator, if possible
-        core.info(`Unassigning ${github.context.actor} from #${issue.number}`)
+        let toBeAssigned;
+        let toBeUnassigned;
+        if (core.getInput('operation') === Operation.ReviewRequested) {
+            toBeAssigned = reviewers;
+            toBeUnassigned = [github.context.actor];
+        } else if (core.getInput('operation') === Operation.ChangesRequested) {
+            toBeAssigned = [github.context.actor];
+            toBeUnassigned = reviewers;
+        }
+
+        core.info(`Unassigning ${toBeUnassigned} from #${issue.number}`)
         await octokit.rest.issues.removeAssignees({
             owner: github.context.repo.owner,
             repo: github.context.repo.repo,
             issue_number: issue.number,
-            assignees: [github.context.actor]
+            assignees: toBeUnassigned
         })
 
-        await assignIssueToReviewer(octokit, issue, reviewers)
+        core.info(`Assigning issue #${issue.number} to ${toBeAssigned}`)
+        await octokit.rest.issues.addAssignees({
+            owner: github.context.repo.owner,
+            repo: github.context.repo.repo,
+            issue_number: issue.number,
+            assignees: toBeAssigned
+        })
 
         await updateIssueStatusInProject(
             graphqlWithAuth,
             issue,
-            Number(core.getInput('projectNumber'))
+            Number(core.getInput('projectNumber')),
+            core.getInput('operation')
         )
     }
 }
@@ -126,19 +147,23 @@ async function fetchIssue(
 async function updateIssueStatusInProject(
     graphqlWithAuth: GraphQl,
     issue: Issue,
-    projectNumber: number
+    projectNumber: number,
+    operation: string
 ): Promise<void> {
     core.info(`Updating status for issue #${issue.number}...`)
 
     const project = await fetchProjectInformation(graphqlWithAuth, projectNumber);
 
     const projectId = project?.id
+
     const statusField = project?.fields.nodes?.find(
         x => x?.name === 'Status'
     ) as ProjectV2SingleSelectField
     const statusFieldId = statusField?.id
-    const reviewOptionId = statusField?.options.find(x =>
-        x.name.includes('Review')
+
+    const statusSearchString = operation === Operation.ReviewRequested ? 'Review' : 'In Progress'
+    const statusOptionId = statusField?.options.find(x =>
+        x.name.includes(statusSearchString)
     )?.id
 
     const issues = await fetchIssuesInProject(graphqlWithAuth, projectNumber);
@@ -147,14 +172,14 @@ async function updateIssueStatusInProject(
     )?.id
     core.info(`Found project issue with ID ${projectIssueId} for issue #${issue.number}`);
 
-    if (statusFieldId && reviewOptionId && projectId && projectIssueId) {
+    if (statusFieldId && statusOptionId && projectId && projectIssueId) {
         core.info(`Setting field ${statusFieldId} in issue ${issue.id}`)
         const updateIssueInput: UpdateProjectV2ItemFieldValueInput = {
             fieldId: statusFieldId,
             itemId: projectIssueId,
             projectId: projectId,
             value: {
-                singleSelectOptionId: reviewOptionId
+                singleSelectOptionId: statusOptionId
             }
         }
         await graphqlWithAuth<{
@@ -173,7 +198,7 @@ async function updateIssueStatusInProject(
         )
         core.info('Successfully updated issue status')
     } else {
-        core.error(`Error finding project or information`)
+        core.error(`Error finding project or issue information`)
     }
 }
 
@@ -238,7 +263,7 @@ async function fetchIssuesInProject(
           query getIssues($org: String!, $projectNum: Int!, $endCursor: String!) {
             organization(login: $org) {
               projectV2(number: $projectNum) {
-                items(first: 1, after: $endCursor) {
+                items(first: 100, after: $endCursor) {
                   pageInfo {
                     hasNextPage
                     endCursor
@@ -273,21 +298,6 @@ async function fetchIssuesInProject(
 
     core.info(`Fetched ${issues.length} total issues`);
     return issues;
-}
-
-async function assignIssueToReviewer(
-    octokit: Octokit,
-    issue: Issue,
-    reviewers: string[]
-): Promise<void> {
-    core.info(`Assigning reviewers ${reviewers} to issue #${issue.number}`)
-    await octokit.rest.issues.addAssignees({
-        owner: github.context.repo.owner,
-        repo: github.context.repo.repo,
-        issue_number: issue.number,
-        assignees: reviewers
-    })
-    core.info(`Successfully assigned issue #${issue.number}`)
 }
 
 run()
