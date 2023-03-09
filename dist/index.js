@@ -58,19 +58,22 @@ function run() {
         let toBeAssigned = [];
         let issues = [];
         let status;
-        if (github.context.eventName === 'pull_request') {
+        if (github.context.eventName === 'pull_request'
+            && github.context.payload.action === 'review_requested') {
             const event = github.context.payload;
+            core.info(`Review was requested on pull request #${event.pull_request.number} by ${event.sender.login}`);
             issues = yield extractIssuesFromPullRequestBody(octokit, event.pull_request.body);
-            core.info(`Pull request reviewers: ${JSON.stringify(event.pull_request.requested_reviewers)}`);
             const reviewers = event.pull_request.requested_reviewers.map(r => r.login);
+            core.info(`Requested reviewers: ${reviewers}`);
             toBeAssigned = reviewers;
             status = Status.Review;
         }
         else if (github.context.eventName === 'pull_request_review') {
             const event = github.context.payload;
             if (event.review.state === 'changes_requested') {
+                core.info(`Changes were requested on pull request #${event.pull_request.number}`);
                 issues = yield extractIssuesFromPullRequestBody(octokit, event.pull_request.body);
-                toBeAssigned = [github.context.actor];
+                toBeAssigned = [event.pull_request.user.login];
                 status = Status.InProgress;
             }
             else {
