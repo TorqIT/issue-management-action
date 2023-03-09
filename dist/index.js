@@ -62,7 +62,7 @@ function run() {
             const event = github.context.payload;
             issues = yield extractIssuesFromPullRequestBody(octokit, event.pull_request.body);
             core.info(`Pull request reviewers: ${JSON.stringify(event.pull_request.requested_reviewers)}`);
-            const reviewers = event.pull_request.requested_reviewers.filter(r => r !== undefined).map(r => r.id.toString());
+            const reviewers = event.pull_request.requested_reviewers.map(r => r.login);
             toBeAssigned = reviewers;
             status = Status.Review;
         }
