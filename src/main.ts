@@ -180,7 +180,7 @@ async function fetchProjectInformation(
     graphqlWithAuth: GraphQl,
     projectNumber: number,
     issueNumber: number
-): Promise<{ organization: Organization, repository: Repository } {
+): Promise<{ organization: Organization, repository: Repository }> {
     core.info(`Fetching issues in project ${projectNumber}...`)
     const query = await graphqlWithAuth<{
         organization: Organization
