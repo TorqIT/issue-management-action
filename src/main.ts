@@ -135,6 +135,7 @@ async function updateIssueStatusInProject(
     const projectV2IssueId = project.organization.projectV2?.items.nodes?.find(
         x => (x?.content as GraphQlIssue).number
     )
+    core.info(`GraphQL issue node ID: ${projectV2IssueId}`);
 
     const projectId = project?.organization?.projectV2?.id
     const statusField = project?.organization?.projectV2?.fields.nodes?.find(
@@ -205,13 +206,13 @@ async function fetchProjectInformation(
                 }
               }
             }
-          }
-          items(first: 100) {
-            nodes {
-              id
-              content {
-                ... on Issue {
-                  number
+            items(first: 100) {
+              nodes {
+                id
+                content {
+                  ... on Issue {
+                    number
+                  }
                 }
               }
             }

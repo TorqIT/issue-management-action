@@ -139,6 +139,7 @@ function updateIssueStatusInProject(graphqlWithAuth, issue, projectNumber) {
         const project = yield fetchProjectInformation(graphqlWithAuth, projectNumber);
         core.info(`Issue node ID: ${issue.node_id}`);
         const projectV2IssueId = (_b = (_a = project.organization.projectV2) === null || _a === void 0 ? void 0 : _a.items.nodes) === null || _b === void 0 ? void 0 : _b.find(x => (x === null || x === void 0 ? void 0 : x.content).number);
+        core.info(`GraphQL issue node ID: ${projectV2IssueId}`);
         const projectId = (_d = (_c = project === null || project === void 0 ? void 0 : project.organization) === null || _c === void 0 ? void 0 : _c.projectV2) === null || _d === void 0 ? void 0 : _d.id;
         const statusField = (_g = (_f = (_e = project === null || project === void 0 ? void 0 : project.organization) === null || _e === void 0 ? void 0 : _e.projectV2) === null || _f === void 0 ? void 0 : _f.fields.nodes) === null || _g === void 0 ? void 0 : _g.find(x => (x === null || x === void 0 ? void 0 : x.name) === 'Status');
         const statusFieldId = statusField === null || statusField === void 0 ? void 0 : statusField.id;
@@ -193,13 +194,13 @@ function fetchProjectInformation(graphqlWithAuth, projectNumber) {
                 }
               }
             }
-          }
-          items(first: 100) {
-            nodes {
-              id
-              content {
-                ... on Issue {
-                  number
+            items(first: 100) {
+              nodes {
+                id
+                content {
+                  ... on Issue {
+                    number
+                  }
                 }
               }
             }
