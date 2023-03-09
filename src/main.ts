@@ -207,7 +207,7 @@ async function fetchProjectInformation(
                 }
               }
             }
-            items(where: {number: {_eq: issueNumber}}) {
+            items(where: {number: {_eq: $issueNumber}}) {
               nodes {
                 id
                 content {
