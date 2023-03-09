@@ -5,12 +5,12 @@ import { graphql } from '@octokit/graphql'
 import type { graphql as GraphQl } from '@octokit/graphql/dist-types/types'
 import { Octokit } from '@octokit/rest'
 import {
-    Maybe,
     Organization,
-    ProjectV2,
+    ProjectV2Field,
     ProjectV2SingleSelectField,
     Repository,
     UpdateProjectV2ItemFieldValueInput,
+    Issue as GraphQlIssue
 } from '@octokit/graphql-schema'
 
 type Issue = components['schemas']['issue']
@@ -131,8 +131,13 @@ async function updateIssueStatusInProject(
 
     const project = await fetchProjectInformation(graphqlWithAuth, projectNumber);
 
-    const projectId = project?.id
-    const statusField = project?.fields.nodes?.find(
+    core.info(`Issue node ID: ${issue.node_id}`);
+    const projectV2IssueId = project.organization.projectV2?.items.nodes?.find(
+        x => (x?.content as GraphQlIssue).number
+    )
+
+    const projectId = project?.organization?.projectV2?.id
+    const statusField = project?.organization?.projectV2?.fields.nodes?.find(
         x => x?.name === 'Status'
     ) as ProjectV2SingleSelectField
     const statusFieldId = statusField?.id
@@ -173,7 +178,7 @@ async function updateIssueStatusInProject(
 async function fetchProjectInformation(
     graphqlWithAuth: GraphQl,
     projectNumber: number,
-): Promise<Maybe<ProjectV2> | undefined> {
+): Promise<{ organization: Organization, repository: Repository }> {
     core.info(`Fetching issues in project ${projectNumber}...`)
     const query = await graphqlWithAuth<{
         organization: Organization
@@ -201,6 +206,16 @@ async function fetchProjectInformation(
               }
             }
           }
+          items(first: 100) {
+            nodes {
+              id
+              content {
+                ... on Issue {
+                  number
+                }
+              }
+            }
+          }
         }
       }
     `,
@@ -210,7 +225,7 @@ async function fetchProjectInformation(
         }
     )
 
-    return query.organization.projectV2;
+    return query;
 }
 
 async function assignIssueToReviewer(
