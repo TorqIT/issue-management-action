@@ -1,26 +1,37 @@
 ## Issue Management Action
 
-Automatically assigns and moves GitHub Issues that are linked to Pull Requests. Created from https://github.com/actions/typescript-action.
+Automatically assigns and sets the status of GitHub Issues that are linked to Pull Requests.
+
+### Requirements
+
+In order to work with the Projects API, the Action must be installed as a GitHub App. Follow the instructions here https://docs.github.com/en/apps/maintaining-github-apps/installing-github-apps for installing the App, then generate a client secret and add the credentials to your organization or repository's secrets. Create a secret named `APP_ID` with the value from the `App ID` listed on the App, and `APP_PEM` with the value from the generated client secret.
 
 ### Example usage
 
-In your workflow, use the Action like the example below. When a review is requested on a Pull Request, the Action will automatically assign any linked issues to the reviewer, search for the issues in the columns defined by `fromColumnIds`, and move them to `toColumnId` (e.g. from an "In Progress" column to a "Review" column on your project board). Note that, currently, the only way for the Action to find linked issues is by looking in the Pull Request body - e.g. "Resolves #31". Column IDs can be found by clicking the 3 dots on a column and clicking "Copy column link".
+In your workflow, use the Action like the example below. When a review is requested on a Pull Request, the Action will automatically assign any linked issues to the reviewer, and update its status to "Review" (note that a status containing this word must be present in your project). Whenever changes are requested on the PR, the Action will assign the issue back to the original developer, and update its status to "In Progress" (again, a status containing these words must exist in your project).
 
 ```yaml
 on:
   pull_request:
     types: review_requested
+  pull_request_review:
+    types: submitted
 jobs:
   steps:
+    # Use this Action to generate a token using the GitHub App described above
+    - name: Generate token
+        id: generate_token
+        uses: tibdex/github-app-token@v1
+        with:
+          app_id: ${{ secrets.APP_ID }}
+          private_key: ${{ secrets.APP_PEM }}
+
     - name: Issue management
-      uses: TorqIT/issue-management@v1.0.0
+      uses: TorqIT/issue-management@v2.0.0
       with:
-        # Token required for access to the project
-        token: ${{ secrets.GITHUB_TOKEN }}
-        # Comma-separated list of column IDs in which to look for issues
-        fromColumnIds: 17949893,17949897
-        # Column to move issues to
-        toColumnId: 17949897
+        token: ${{ env.GITHUB_TOKEN }}
+        # Project number. Can be found in the URL of your project (i.e. https://github.com/orgs/<your-org>/projects/<project-number>)
+        projectNumber: 10
 ```
 
 ### Development
