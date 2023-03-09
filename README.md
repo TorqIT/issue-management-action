@@ -4,7 +4,9 @@ Automatically assigns and sets the status of GitHub Issues that are linked to Pu
 
 ### Requirements
 
-In order to work with the Projects API, the Action must be installed as a GitHub App. Follow the instructions here https://docs.github.com/en/apps/maintaining-github-apps/installing-github-apps for installing the App, then generate a client secret and add the credentials to your organization or repository's secrets. Create a secret named `APP_ID` with the value from the `App ID` listed on the App, and `APP_PEM` with the value from the generated client secret.
+In order to work with the Projects V2 API, your repository will need to be registered as a client in the GitHub App. Navigate to https://github.com/organizations/TorqIT/settings/apps/issue-management-action, click "Generate a new client secret", and add the following secrets to your repository or organization:
+- `ISSUE_MANAGEMENT_ACTION_APP_ID` = `<App ID value from page linked above>`
+- `ISSUE_MANAGEMENT_ACTION_CLIENT_SECRET` = `<Client secret generated above>`
 
 ### Example usage
 
@@ -23,8 +25,8 @@ jobs:
         id: generate_token
         uses: tibdex/github-app-token@v1
         with:
-          app_id: ${{ secrets.APP_ID }}
-          private_key: ${{ secrets.APP_PEM }}
+          app_id: ${{ secrets.ISSUE_MANAGEMENT_ACTION_APP_ID }}
+          private_key: ${{ secrets.ISSUE_MANAGEMENT_ACTION_CLIENT_SECRET }}
 
     - name: Issue management
       uses: TorqIT/issue-management@v2.0.0
