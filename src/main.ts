@@ -6,14 +6,11 @@ import type { graphql as GraphQl } from '@octokit/graphql/dist-types/types'
 import { Octokit } from '@octokit/rest'
 import {
     Organization,
-    ProjectV2Field,
     ProjectV2SingleSelectField,
-    Repository,
     UpdateProjectV2ItemFieldValueInput,
     Issue as GraphQlIssue,
     Maybe,
     ProjectV2,
-    PageInfo,
     ProjectV2Item
 } from '@octokit/graphql-schema'
 
