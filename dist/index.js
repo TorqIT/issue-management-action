@@ -133,10 +133,45 @@ function fetchIssue(octokit, issueNumber) {
     });
 }
 function updateIssueStatusInProject(graphqlWithAuth, issue, projectNumber) {
-    var _a, _b, _c, _d, _e, _f, _g;
+    var _a, _b, _c, _d, _e, _f, _g, _h;
     return __awaiter(this, void 0, void 0, function* () {
         core.info(`Updating status for issue #${issue.number}...`);
-        core.info('Fetching project status field information...');
+        const project = yield fetchProjectInformation(graphqlWithAuth, projectNumber);
+        core.info(`Issue node ID: ${issue.node_id}`);
+        const projectV2IssueId = (_b = (_a = project.organization.projectV2) === null || _a === void 0 ? void 0 : _a.items.nodes) === null || _b === void 0 ? void 0 : _b.find(x => (x === null || x === void 0 ? void 0 : x.content).number);
+        const projectId = (_d = (_c = project === null || project === void 0 ? void 0 : project.organization) === null || _c === void 0 ? void 0 : _c.projectV2) === null || _d === void 0 ? void 0 : _d.id;
+        const statusField = (_g = (_f = (_e = project === null || project === void 0 ? void 0 : project.organization) === null || _e === void 0 ? void 0 : _e.projectV2) === null || _f === void 0 ? void 0 : _f.fields.nodes) === null || _g === void 0 ? void 0 : _g.find(x => (x === null || x === void 0 ? void 0 : x.name) === 'Status');
+        const statusFieldId = statusField === null || statusField === void 0 ? void 0 : statusField.id;
+        const reviewOptionId = (_h = statusField === null || statusField === void 0 ? void 0 : statusField.options.find(x => x.name.includes('Review'))) === null || _h === void 0 ? void 0 : _h.id;
+        if (statusFieldId && reviewOptionId && projectId) {
+            core.info(`Setting field ${statusFieldId} in issue ${issue.id}`);
+            const updateIssueInput = {
+                fieldId: statusFieldId,
+                itemId: issue.node_id,
+                projectId: projectId,
+                value: {
+                    singleSelectOptionId: reviewOptionId
+                }
+            };
+            yield graphqlWithAuth(`
+        mutation($input: UpdateProjectV2ItemFieldValueInput!) {
+          updateProjectV2ItemFieldValue(input: $input) { 
+            clientMutationId
+          }
+        }
+      `, {
+                input: updateIssueInput
+            });
+            core.info('Successfully updated issue status');
+        }
+        else {
+            core.error(`Error finding project information`);
+        }
+    });
+}
+function fetchProjectInformation(graphqlWithAuth, projectNumber) {
+    return __awaiter(this, void 0, void 0, function* () {
+        core.info(`Fetching issues in project ${projectNumber}...`);
         const query = yield graphqlWithAuth(`
       query GetIssueInformation($org: String!, $projectNum: Int!) {
         organization(login: $org) {
@@ -158,13 +193,13 @@ function updateIssueStatusInProject(graphqlWithAuth, issue, projectNumber) {
                 }
               }
             }
-            items(first:100) {
-              nodes {
-                id
-                content {
-                  ... on Issue {
-                    number
-                  }
+          }
+          items(first: 100) {
+            nodes {
+              id
+              content {
+                ... on Issue {
+                  number
                 }
               }
             }
@@ -173,40 +208,9 @@ function updateIssueStatusInProject(graphqlWithAuth, issue, projectNumber) {
       }
     `, {
             org: github.context.repo.owner,
-            projectNum: projectNumber
+            projectNum: projectNumber,
         });
-        const globalProjectId = (_a = query.organization.projectV2) === null || _a === void 0 ? void 0 : _a.id;
-        const globalIssueId = (_e = (_d = (_c = (_b = query.organization.projectV2) === null || _b === void 0 ? void 0 : _b.items) === null || _c === void 0 ? void 0 : _c.nodes) === null || _d === void 0 ? void 0 : _d.find(x => (x === null || x === void 0 ? void 0 : x.content).number)) === null || _e === void 0 ? void 0 : _e.id;
-        const nodes = (_f = query.organization.projectV2) === null || _f === void 0 ? void 0 : _f.fields.nodes;
-        const statusField = nodes === null || nodes === void 0 ? void 0 : nodes.find(x => (x === null || x === void 0 ? void 0 : x.name) === 'Status');
-        const statusFieldId = statusField === null || statusField === void 0 ? void 0 : statusField.id;
-        core.info(`Found status field ID ${statusFieldId}`);
-        const reviewOptionId = (_g = statusField === null || statusField === void 0 ? void 0 : statusField.options.find(x => x.name.includes('Review'))) === null || _g === void 0 ? void 0 : _g.id;
-        core.info(`Found review option ID ${reviewOptionId}`);
-        if (statusFieldId && reviewOptionId && globalProjectId && globalIssueId) {
-            core.info(`Setting field ${statusFieldId} in issue ${issue.id}`);
-            const updateIssueInput = {
-                fieldId: statusFieldId,
-                itemId: globalIssueId,
-                projectId: globalProjectId,
-                value: {
-                    singleSelectOptionId: reviewOptionId
-                }
-            };
-            yield graphqlWithAuth(`
-        mutation($input: UpdateProjectV2ItemFieldValueInput!) {
-          updateProjectV2ItemFieldValue(input: $input) { 
-            clientMutationId
-          }
-        }
-      `, {
-                input: updateIssueInput
-            });
-            core.info('Successfully updated issue status');
-        }
-        else {
-            core.error(`Error finding a status field/review column`);
-        }
+        return query;
     });
 }
 function assignIssueToReviewer(octokit, issue, reviewers) {
