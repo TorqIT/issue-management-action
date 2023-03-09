@@ -61,7 +61,7 @@ function run() {
         if (github.context.eventName === 'pull_request') {
             const event = github.context.payload;
             issues = yield extractIssuesFromPullRequestBody(octokit, event.pull_request.body);
-            core.info(`Pull request reviewers: ${event.pull_request.requested_reviewers}`);
+            core.info(`Pull request reviewers: ${event.pull_request.requested_reviewers.map(r => r.name)}`);
             const reviewers = event.pull_request.requested_reviewers.filter(r => r !== undefined).map(r => r.name);
             toBeAssigned = reviewers;
             status = Status.Review;
