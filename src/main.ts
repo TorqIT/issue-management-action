@@ -17,9 +17,9 @@ import {
 
 type Issue = components['schemas']['issue']
 
-enum Operation {
-    ReviewRequested = 'review_requested',
-    ChangesRequested = 'changes_requested'
+enum Status {
+    Review = 'Review',
+    InProgress = 'In Progress'
 }
 
 async function run(): Promise<void> {
@@ -35,16 +35,20 @@ async function run(): Promise<void> {
 
     let toBeAssigned: string[] = [];
     let issues: Issue[] = [];
+    let status: Status;
     if (github.context.eventName === 'pull_request') {
         const event = github.context.payload as PullRequestReviewRequestedEvent;
         issues = await extractIssuesFromPullRequestBody(octokit, event.pull_request.body!);
+        core.info(`Pull request reviewers: ${event.pull_request.requested_reviewers}`);
         const reviewers = <string[]>event.pull_request.requested_reviewers.filter(r => r !== undefined).map(r => r.name);
         toBeAssigned = reviewers;
+        status = Status.Review;
     } else if (github.context.eventName === 'pull_request_review') {
         const event = github.context.payload as PullRequestReviewSubmittedEvent;
         if (event.review.state === 'changes_requested') {
             issues = await extractIssuesFromPullRequestBody(octokit, event.pull_request.body!);
             toBeAssigned = [github.context.actor];
+            status = Status.InProgress;
         } else {
             core.info("Submitted review had no requested changes, so exiting");
             return;
@@ -72,7 +76,7 @@ async function run(): Promise<void> {
             graphqlWithAuth,
             issue,
             Number(core.getInput('projectNumber')),
-            core.getInput('operation')
+            status!
         )
     }
 }
@@ -132,7 +136,7 @@ async function updateIssueStatusInProject(
     graphqlWithAuth: GraphQl,
     issue: Issue,
     projectNumber: number,
-    operation: string
+    status: Status
 ): Promise<void> {
     core.info(`Updating status for issue #${issue.number}...`)
 
@@ -145,9 +149,8 @@ async function updateIssueStatusInProject(
     ) as ProjectV2SingleSelectField
     const statusFieldId = statusField?.id
 
-    const statusSearchString = operation === Operation.ReviewRequested ? 'Review' : 'In Progress'
     const statusOptionId = statusField?.options.find(x =>
-        x.name.includes(statusSearchString)
+        x.name.includes(status)
     )?.id
 
     const issues = await fetchIssuesInProject(graphqlWithAuth, projectNumber);

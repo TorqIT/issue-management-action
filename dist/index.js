@@ -39,11 +39,11 @@ const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
 const graphql_1 = __nccwpck_require__(8467);
 const rest_1 = __nccwpck_require__(5375);
-var Operation;
-(function (Operation) {
-    Operation["ReviewRequested"] = "review_requested";
-    Operation["ChangesRequested"] = "changes_requested";
-})(Operation || (Operation = {}));
+var Status;
+(function (Status) {
+    Status["Review"] = "Review";
+    Status["InProgress"] = "In Progress";
+})(Status || (Status = {}));
 function run() {
     var _a;
     return __awaiter(this, void 0, void 0, function* () {
@@ -57,17 +57,21 @@ function run() {
         });
         let toBeAssigned = [];
         let issues = [];
+        let status;
         if (github.context.eventName === 'pull_request') {
             const event = github.context.payload;
             issues = yield extractIssuesFromPullRequestBody(octokit, event.pull_request.body);
+            core.info(`Pull request reviewers: ${event.pull_request.requested_reviewers}`);
             const reviewers = event.pull_request.requested_reviewers.filter(r => r !== undefined).map(r => r.name);
             toBeAssigned = reviewers;
+            status = Status.Review;
         }
         else if (github.context.eventName === 'pull_request_review') {
             const event = github.context.payload;
             if (event.review.state === 'changes_requested') {
                 issues = yield extractIssuesFromPullRequestBody(octokit, event.pull_request.body);
                 toBeAssigned = [github.context.actor];
+                status = Status.InProgress;
             }
             else {
                 core.info("Submitted review had no requested changes, so exiting");
@@ -89,7 +93,7 @@ function run() {
                 issue_number: issue.number,
                 assignees: toBeAssigned
             });
-            yield updateIssueStatusInProject(graphqlWithAuth, issue, Number(core.getInput('projectNumber')), core.getInput('operation'));
+            yield updateIssueStatusInProject(graphqlWithAuth, issue, Number(core.getInput('projectNumber')), status);
         }
     });
 }
@@ -140,7 +144,7 @@ function fetchIssue(octokit, issueNumber) {
         }
     });
 }
-function updateIssueStatusInProject(graphqlWithAuth, issue, projectNumber, operation) {
+function updateIssueStatusInProject(graphqlWithAuth, issue, projectNumber, status) {
     var _a, _b, _c;
     return __awaiter(this, void 0, void 0, function* () {
         core.info(`Updating status for issue #${issue.number}...`);
@@ -148,8 +152,7 @@ function updateIssueStatusInProject(graphqlWithAuth, issue, projectNumber, opera
         const projectId = project === null || project === void 0 ? void 0 : project.id;
         const statusField = (_a = project === null || project === void 0 ? void 0 : project.fields.nodes) === null || _a === void 0 ? void 0 : _a.find(x => (x === null || x === void 0 ? void 0 : x.name) === 'Status');
         const statusFieldId = statusField === null || statusField === void 0 ? void 0 : statusField.id;
-        const statusSearchString = operation === Operation.ReviewRequested ? 'Review' : 'In Progress';
-        const statusOptionId = (_b = statusField === null || statusField === void 0 ? void 0 : statusField.options.find(x => x.name.includes(statusSearchString))) === null || _b === void 0 ? void 0 : _b.id;
+        const statusOptionId = (_b = statusField === null || statusField === void 0 ? void 0 : statusField.options.find(x => x.name.includes(status))) === null || _b === void 0 ? void 0 : _b.id;
         const issues = yield fetchIssuesInProject(graphqlWithAuth, projectNumber);
         const projectIssueId = (_c = issues.find(x => (x === null || x === void 0 ? void 0 : x.content).number)) === null || _c === void 0 ? void 0 : _c.id;
         core.info(`Found project issue with ID ${projectIssueId} for issue #${issue.number}`);
