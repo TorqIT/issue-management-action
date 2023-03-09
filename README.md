@@ -22,11 +22,11 @@ jobs:
   steps:
     # Use this Action to generate a token using the GitHub App described above
     - name: Generate token
-        id: generate_token
-        uses: tibdex/github-app-token@v1
-        with:
-          app_id: ${{ secrets.ISSUE_MANAGEMENT_ACTION_APP_ID }}
-          private_key: ${{ secrets.ISSUE_MANAGEMENT_ACTION_CLIENT_SECRET }}
+      id: generate_token
+      uses: tibdex/github-app-token@v1
+      with:
+        app_id: ${{ secrets.ISSUE_MANAGEMENT_ACTION_APP_ID }}
+        private_key: ${{ secrets.ISSUE_MANAGEMENT_ACTION_CLIENT_SECRET }}
 
     - name: Issue management
       uses: TorqIT/issue-management@v2.0.0
