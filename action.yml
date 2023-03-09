@@ -7,17 +7,10 @@ branding:
 inputs:
   token:
     required: true
-    description: 'GitHub token. In an Action workflow, use secrets.GITHUB_TOKEN'
+    description: GitHub token. See README for details on how to generate this.
   projectNumber:
     required: true
-    description: 'Project number. Can be found in the URL of your project (i.e. https://github.com/orgs/<your-org>/projects/<project-number>)'
-  operation:
-    required: true
-    type: choice
-    description: The operation that triggered the workflow
-    options:
-      - review_requested
-      - changes_requested
+    description: Project number. Can be found in the URL of your project (i.e. https://github.com/orgs/<your-org>/projects/<project-number>)
 runs:
   using: 'node16'
   main: 'dist/index.js'

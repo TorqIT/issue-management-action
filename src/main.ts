@@ -3,6 +3,7 @@ import * as github from '@actions/github'
 import { components } from '@octokit/openapi-types'
 import { graphql } from '@octokit/graphql'
 import type { graphql as GraphQl } from '@octokit/graphql/dist-types/types'
+import { PullRequestReviewSubmittedEvent, PullRequestReviewRequestedEvent, PullRequestReview, PullRequest } from '@octokit/webhooks-types'
 import { Octokit } from '@octokit/rest'
 import {
     Organization,
@@ -15,6 +16,7 @@ import {
 } from '@octokit/graphql-schema'
 
 type Issue = components['schemas']['issue']
+type Review = components['schemas']['pull-request-review']
 
 enum Operation {
     ReviewRequested = 'review_requested',
@@ -32,30 +34,37 @@ async function run(): Promise<void> {
         }
     })
 
-    const reviewers = await fetchRequestedReviewers(octokit)
+    let toBeAssigned: string[] = [];
+    let issues: Issue[] = [];
+    if (github.context.eventName === 'pull_request') {
+        const pullRequest = github.context.payload as PullRequest;
+        issues = await extractIssuesFromPullRequestBody(octokit, pullRequest.body!);
+        const reviewers = <string[]>pullRequest.requested_reviewers.filter(r => r !== undefined).map(r => r.name);
+        toBeAssigned = reviewers;
+    } else if (github.context.eventName === 'pull_request_review') {
+        const review = github.context.payload as PullRequestReview
+        if (review.state === 'changes_requested') {
+            const pullRequest = await octokit.rest.pulls.get({
+                owner: github.context.repo.owner,
+                repo: github.context.repo.repo,
+                pull_number: parseInt(review?.pull_request_url?.match(/\d+$/)![0])
+            });
+            issues = await extractIssuesFromPullRequestBody(octokit, pullRequest.data.body!);
 
-    const issues = await extractIssuesFromPullRequestBody(
-        octokit,
-        github.context.payload.pull_request?.body
-    )
+            toBeAssigned = [github.context.actor];
+        } else {
+            core.info("Submitted review had no requested changes, so exiting");
+            return;
+        }
+    }
 
     for (const issue of issues) {
-        let toBeAssigned;
-        let toBeUnassigned;
-        if (core.getInput('operation') === Operation.ReviewRequested) {
-            toBeAssigned = reviewers;
-            toBeUnassigned = [github.context.actor];
-        } else if (core.getInput('operation') === Operation.ChangesRequested) {
-            toBeAssigned = [github.context.actor];
-            toBeUnassigned = reviewers;
-        }
-
-        core.info(`Unassigning ${toBeUnassigned} from #${issue.number}`)
+        core.info(`Unassigning all current assignees from #${issue.number}`)
         await octokit.rest.issues.removeAssignees({
             owner: github.context.repo.owner,
             repo: github.context.repo.repo,
             issue_number: issue.number,
-            assignees: toBeUnassigned
+            assignees: issue.assignees?.map(a => a.login)
         })
 
         core.info(`Assigning issue #${issue.number} to ${toBeAssigned}`)
@@ -63,7 +72,7 @@ async function run(): Promise<void> {
             owner: github.context.repo.owner,
             repo: github.context.repo.repo,
             issue_number: issue.number,
-            assignees: toBeAssigned
+            assignees: toBeAssigned!
         })
 
         await updateIssueStatusInProject(
@@ -72,24 +81,6 @@ async function run(): Promise<void> {
             Number(core.getInput('projectNumber')),
             core.getInput('operation')
         )
-    }
-}
-
-async function fetchRequestedReviewers(octokit: Octokit): Promise<string[]> {
-    core.info(`Fetching requested reviewers`)
-    const requestedReviewersJson =
-        await octokit.rest.pulls.listRequestedReviewers({
-            owner: github.context.repo.owner,
-            repo: github.context.repo.repo,
-            pull_number: github.context.issue.number
-        })
-    const reviewers = requestedReviewersJson.data.users.map(r => r.login)
-    if (reviewers) {
-        core.info(`Pull request reviewers: ${reviewers}`)
-        return reviewers
-    } else {
-        core.info(`No reviewers found`)
-        return []
     }
 }
 
