@@ -238,13 +238,13 @@ function fetchIssuesInProject(graphqlWithAuth, projectNumber) {
                 projectNum: projectNumber,
                 endCursor: cursor
             });
-            core.debug(`Fetched page with ${(_d = (_c = (_b = (_a = query.organization) === null || _a === void 0 ? void 0 : _a.projectV2) === null || _b === void 0 ? void 0 : _b.items) === null || _c === void 0 ? void 0 : _c.nodes) === null || _d === void 0 ? void 0 : _d.length} issues`);
+            core.info(`Fetched page with ${(_d = (_c = (_b = (_a = query.organization) === null || _a === void 0 ? void 0 : _a.projectV2) === null || _b === void 0 ? void 0 : _b.items) === null || _c === void 0 ? void 0 : _c.nodes) === null || _d === void 0 ? void 0 : _d.length} issues`);
             issues = [...issues, ...(_g = (_f = (_e = query.organization) === null || _e === void 0 ? void 0 : _e.projectV2) === null || _f === void 0 ? void 0 : _f.items) === null || _g === void 0 ? void 0 : _g.nodes];
             const pageInfo = (_k = (_j = (_h = query.organization) === null || _h === void 0 ? void 0 : _h.projectV2) === null || _j === void 0 ? void 0 : _j.items) === null || _k === void 0 ? void 0 : _k.pageInfo;
             cursor = pageInfo.endCursor;
             hasNextPage = pageInfo.hasNextPage;
         }
-        core.info(`Fetched ${issues.length} total`);
+        core.info(`Fetched ${issues.length} total issues`);
         return issues;
     });
 }

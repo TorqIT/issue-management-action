@@ -266,7 +266,7 @@ async function fetchIssuesInProject(
             }
         );
 
-        core.debug(`Fetched page with ${query.organization?.projectV2?.items?.nodes?.length} issues`);
+        core.info(`Fetched page with ${query.organization?.projectV2?.items?.nodes?.length} issues`);
         issues = [...issues, ...query.organization?.projectV2?.items?.nodes!];
 
         const pageInfo = query.organization?.projectV2?.items?.pageInfo!;
@@ -274,7 +274,7 @@ async function fetchIssuesInProject(
         hasNextPage = pageInfo.hasNextPage!;
     }
 
-    core.info(`Fetched ${issues.length} total`);
+    core.info(`Fetched ${issues.length} total issues`);
     return issues;
 }
 
