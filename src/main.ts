@@ -3,7 +3,7 @@ import * as github from '@actions/github'
 import { components } from '@octokit/openapi-types'
 import { graphql } from '@octokit/graphql'
 import type { graphql as GraphQl } from '@octokit/graphql/dist-types/types'
-import { PullRequestReviewSubmittedEvent, PullRequestReviewRequestedEvent, PullRequestReview, PullRequest } from '@octokit/webhooks-types'
+import { PullRequestReviewSubmittedEvent, PullRequestReviewRequestedEvent } from '@octokit/webhooks-types'
 import { Octokit } from '@octokit/rest'
 import {
     Organization,
@@ -16,7 +16,6 @@ import {
 } from '@octokit/graphql-schema'
 
 type Issue = components['schemas']['issue']
-type Review = components['schemas']['pull-request-review']
 
 enum Operation {
     ReviewRequested = 'review_requested',
@@ -37,20 +36,14 @@ async function run(): Promise<void> {
     let toBeAssigned: string[] = [];
     let issues: Issue[] = [];
     if (github.context.eventName === 'pull_request') {
-        const pullRequest = github.context.payload as PullRequest;
-        issues = await extractIssuesFromPullRequestBody(octokit, pullRequest.body!);
-        const reviewers = <string[]>pullRequest.requested_reviewers.filter(r => r !== undefined).map(r => r.name);
+        const event = github.context.payload as PullRequestReviewRequestedEvent;
+        issues = await extractIssuesFromPullRequestBody(octokit, event.pull_request.body!);
+        const reviewers = <string[]>event.pull_request.requested_reviewers.filter(r => r !== undefined).map(r => r.name);
         toBeAssigned = reviewers;
     } else if (github.context.eventName === 'pull_request_review') {
-        const review = github.context.payload as PullRequestReview
-        if (review.state === 'changes_requested') {
-            const pullRequest = await octokit.rest.pulls.get({
-                owner: github.context.repo.owner,
-                repo: github.context.repo.repo,
-                pull_number: parseInt(review?.pull_request_url?.match(/\d+$/)![0])
-            });
-            issues = await extractIssuesFromPullRequestBody(octokit, pullRequest.data.body!);
-
+        const event = github.context.payload as PullRequestReviewSubmittedEvent;
+        if (event.review.state === 'changes_requested') {
+            issues = await extractIssuesFromPullRequestBody(octokit, event.pull_request.body!);
             toBeAssigned = [github.context.actor];
         } else {
             core.info("Submitted review had no requested changes, so exiting");

@@ -45,7 +45,7 @@ var Operation;
     Operation["ChangesRequested"] = "changes_requested";
 })(Operation || (Operation = {}));
 function run() {
-    var _a, _b;
+    var _a;
     return __awaiter(this, void 0, void 0, function* () {
         const octokit = new rest_1.Octokit({
             auth: core.getInput('token')
@@ -58,20 +58,15 @@ function run() {
         let toBeAssigned = [];
         let issues = [];
         if (github.context.eventName === 'pull_request') {
-            const pullRequest = github.context.payload;
-            issues = yield extractIssuesFromPullRequestBody(octokit, pullRequest.body);
-            const reviewers = pullRequest.requested_reviewers.filter(r => r !== undefined).map(r => r.name);
+            const event = github.context.payload;
+            issues = yield extractIssuesFromPullRequestBody(octokit, event.pull_request.body);
+            const reviewers = event.pull_request.requested_reviewers.filter(r => r !== undefined).map(r => r.name);
             toBeAssigned = reviewers;
         }
         else if (github.context.eventName === 'pull_request_review') {
-            const review = github.context.payload;
-            if (review.state === 'changes_requested') {
-                const pullRequest = yield octokit.rest.pulls.get({
-                    owner: github.context.repo.owner,
-                    repo: github.context.repo.repo,
-                    pull_number: parseInt((_a = review === null || review === void 0 ? void 0 : review.pull_request_url) === null || _a === void 0 ? void 0 : _a.match(/\d+$/)[0])
-                });
-                issues = yield extractIssuesFromPullRequestBody(octokit, pullRequest.data.body);
+            const event = github.context.payload;
+            if (event.review.state === 'changes_requested') {
+                issues = yield extractIssuesFromPullRequestBody(octokit, event.pull_request.body);
                 toBeAssigned = [github.context.actor];
             }
             else {
@@ -85,7 +80,7 @@ function run() {
                 owner: github.context.repo.owner,
                 repo: github.context.repo.repo,
                 issue_number: issue.number,
-                assignees: (_b = issue.assignees) === null || _b === void 0 ? void 0 : _b.map(a => a.login)
+                assignees: (_a = issue.assignees) === null || _a === void 0 ? void 0 : _a.map(a => a.login)
             });
             core.info(`Assigning issue #${issue.number} to ${toBeAssigned}`);
             yield octokit.rest.issues.addAssignees({
