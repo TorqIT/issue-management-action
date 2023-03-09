@@ -4,9 +4,9 @@ Automatically assigns and sets the status of GitHub Issues that are linked to Pu
 
 ### Requirements
 
-In order to work with the Projects V2 API, your repository will need to be registered as a client in the GitHub App. Navigate to https://github.com/organizations/TorqIT/settings/apps/issue-management-action, click "Generate a new client secret", and add the following secrets to your repository or organization:
+In order to work with the Projects V2 API, your repository will need to be registered as a client in the GitHub App. Navigate to https://github.com/organizations/TorqIT/settings/apps/issue-management-action, scroll down to "Private keys" and click "Generate a private key". A `.pem` file will be downloaded. Copy the contents of the file and add the following secrets to your GitHub organization or repository:
 - `ISSUE_MANAGEMENT_ACTION_APP_ID` = `<App ID value from page linked above>`
-- `ISSUE_MANAGEMENT_ACTION_CLIENT_SECRET` = `<Client secret generated above>`
+- `ISSUE_MANAGEMENT_ACTION_PRIVATE_KEY` = `<Contents of pem file generated above>`
 
 ### Example usage
 
@@ -19,21 +19,23 @@ on:
   pull_request_review:
     types: submitted
 jobs:
-  steps:
-    # Use this Action to generate a token using the GitHub App described above
-    - name: Generate token
-      id: generate_token
-      uses: tibdex/github-app-token@v1
-      with:
-        app_id: ${{ secrets.ISSUE_MANAGEMENT_ACTION_APP_ID }}
-        private_key: ${{ secrets.ISSUE_MANAGEMENT_ACTION_CLIENT_SECRET }}
+  issue-management:
+    runs-on: ubuntu-latest
+    steps:
+      # Use this Action to generate a token using the GitHub App described above
+      - name: Generate token
+        id: generate_token
+        uses: tibdex/github-app-token@v1
+        with:
+          app_id: ${{ secrets.ISSUE_MANAGEMENT_ACTION_APP_ID }}
+          private_key: ${{ secrets.ISSUE_MANAGEMENT_ACTION_PRIVATE_KEY }}
 
-    - name: Issue management
-      uses: TorqIT/issue-management@v2.0.0
-      with:
-        token: ${{ env.GITHUB_TOKEN }}
-        # Project number. Can be found in the URL of your project (i.e. https://github.com/orgs/<your-org>/projects/<project-number>)
-        projectNumber: 10
+      - name: Issue management
+        uses: TorqIT/issue-management-action@v2.0.0
+        with:
+          token: ${{ steps.generate_token.outputs.token }}
+          # Project number. Can be found in the URL of your project (i.e. https://github.com/orgs/<your-org>/projects/<project-number>)
+          projectNumber: 10
 ```
 
 ### Development
