@@ -133,17 +133,17 @@ function fetchIssue(octokit, issueNumber) {
     });
 }
 function updateIssueStatusInProject(graphqlWithAuth, issue, projectNumber) {
-    var _a, _b, _c, _d, _e, _f, _g, _h;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j;
     return __awaiter(this, void 0, void 0, function* () {
         core.info(`Updating status for issue #${issue.number}...`);
         const project = yield fetchProjectInformation(graphqlWithAuth, projectNumber);
         core.info(`Issue node ID: ${issue.node_id}`);
-        const projectV2IssueId = (_b = (_a = project.organization.projectV2) === null || _a === void 0 ? void 0 : _a.items.nodes) === null || _b === void 0 ? void 0 : _b.find(x => (x === null || x === void 0 ? void 0 : x.content).number);
+        const projectV2IssueId = (_c = (_b = (_a = project.organization.projectV2) === null || _a === void 0 ? void 0 : _a.items.nodes) === null || _b === void 0 ? void 0 : _b.find(x => (x === null || x === void 0 ? void 0 : x.content).number)) === null || _c === void 0 ? void 0 : _c.id;
         core.info(`GraphQL issue node ID: ${projectV2IssueId}`);
-        const projectId = (_d = (_c = project === null || project === void 0 ? void 0 : project.organization) === null || _c === void 0 ? void 0 : _c.projectV2) === null || _d === void 0 ? void 0 : _d.id;
-        const statusField = (_g = (_f = (_e = project === null || project === void 0 ? void 0 : project.organization) === null || _e === void 0 ? void 0 : _e.projectV2) === null || _f === void 0 ? void 0 : _f.fields.nodes) === null || _g === void 0 ? void 0 : _g.find(x => (x === null || x === void 0 ? void 0 : x.name) === 'Status');
+        const projectId = (_e = (_d = project === null || project === void 0 ? void 0 : project.organization) === null || _d === void 0 ? void 0 : _d.projectV2) === null || _e === void 0 ? void 0 : _e.id;
+        const statusField = (_h = (_g = (_f = project === null || project === void 0 ? void 0 : project.organization) === null || _f === void 0 ? void 0 : _f.projectV2) === null || _g === void 0 ? void 0 : _g.fields.nodes) === null || _h === void 0 ? void 0 : _h.find(x => (x === null || x === void 0 ? void 0 : x.name) === 'Status');
         const statusFieldId = statusField === null || statusField === void 0 ? void 0 : statusField.id;
-        const reviewOptionId = (_h = statusField === null || statusField === void 0 ? void 0 : statusField.options.find(x => x.name.includes('Review'))) === null || _h === void 0 ? void 0 : _h.id;
+        const reviewOptionId = (_j = statusField === null || statusField === void 0 ? void 0 : statusField.options.find(x => x.name.includes('Review'))) === null || _j === void 0 ? void 0 : _j.id;
         if (statusFieldId && reviewOptionId && projectId) {
             core.info(`Setting field ${statusFieldId} in issue ${issue.id}`);
             const updateIssueInput = {
