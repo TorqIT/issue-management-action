@@ -39,8 +39,8 @@ async function run(): Promise<void> {
     if (github.context.eventName === 'pull_request') {
         const event = github.context.payload as PullRequestReviewRequestedEvent;
         issues = await extractIssuesFromPullRequestBody(octokit, event.pull_request.body!);
-        core.info(`Pull request reviewers: ${event.pull_request.requested_reviewers.map(r => r.name)}`);
-        const reviewers = <string[]>event.pull_request.requested_reviewers.filter(r => r !== undefined).map(r => r.name);
+        core.info(`Pull request reviewers: ${event.pull_request.requested_reviewers.map(r => r.id)}`);
+        const reviewers = <string[]>event.pull_request.requested_reviewers.filter(r => r !== undefined).map(r => r.id.toString());
         toBeAssigned = reviewers;
         status = Status.Review;
     } else if (github.context.eventName === 'pull_request_review') {
