@@ -28,7 +28,7 @@ jobs:
           npm run all
 
       - name: Run Action
-        uses: ./action.yml
+        uses: ./
         with:
           token: ${{ steps.generate_token.outputs.token }}
           projectNumber: 10
