@@ -137,7 +137,8 @@ function run() {
         const octokit = new rest_1.Octokit({
             auth: core.getInput('token')
         });
-        const eventInfo = yield extractEventInformation(octokit);
+        const testers = core.getInput('testers').split(',');
+        const eventInfo = yield extractEventInformation(octokit, testers);
         if (eventInfo) {
             for (const issue of eventInfo.linkedIssues) {
                 yield updateAssignees(octokit, issue, eventInfo.toBeAssigned);
@@ -165,7 +166,7 @@ function updateAssignees(octokit, issue, assignees) {
         });
     });
 }
-function extractEventInformation(octokit) {
+function extractEventInformation(octokit, testers) {
     return __awaiter(this, void 0, void 0, function* () {
         let toBeAssigned = [];
         let linkedIssues = [];
@@ -178,7 +179,14 @@ function extractEventInformation(octokit) {
             const reviewers = event.pull_request.requested_reviewers.map(r => r.login);
             core.info(`Requested reviewers: ${reviewers}`);
             toBeAssigned = reviewers;
-            statusToBeSet = updateIssueStatus_1.Status.Review;
+            const requestedTesters = testers.filter(t => reviewers.includes(t));
+            if (requestedTesters.length > 0) {
+                core.info(`Requested testers: ${requestedTesters}`);
+                statusToBeSet = updateIssueStatus_1.Status.Test;
+            }
+            else {
+                statusToBeSet = updateIssueStatus_1.Status.Review;
+            }
         }
         else if (github.context.eventName === 'pull_request_review') {
             const event = github.context.payload;
@@ -247,6 +255,7 @@ var Status;
 (function (Status) {
     Status["Review"] = "Review";
     Status["InProgress"] = "In Progress";
+    Status["Test"] = "Test";
 })(Status = exports.Status || (exports.Status = {}));
 /**
  * Updates the given issue in the given project to the given status.

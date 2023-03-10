@@ -2,16 +2,15 @@ name: 'Run the action itself on PRs for testing'
 
 on:
   pull_request:
-    types: [review_requested]
+    types: [review_requested, synchronize]
   pull_request_review:
     types: submitted
 
 jobs:
   pull_requests:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
 
+    steps:
       - name: Generate token
         id: generate_token
         uses: tibdex/github-app-token@v1
@@ -19,15 +18,17 @@ jobs:
           app_id: ${{ secrets.APP_ID }}
           private_key: ${{ secrets.APP_PEM }}
 
+      - uses: actions/checkout@v3
+        with: 
+          token: ${{ steps.generate_token.outputs.token }}
+
       - name: Build
         run: |
           npm install --legacy-peer-deps
           npm run all
 
       - name: Run Action
-        env:
-          GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
         uses: ./
         with:
-          token: ${{ env.GITHUB_TOKEN }}
+          token: ${{ steps.generate_token.outputs.token }}
           projectNumber: 10

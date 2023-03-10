@@ -14,7 +14,8 @@ import {
 
 export enum Status {
   Review = 'Review',
-  InProgress = 'In Progress'
+  InProgress = 'In Progress',
+  Test = 'Test'
 }
 
 /**
