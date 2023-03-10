@@ -32,7 +32,7 @@ jobs:
           cat action.yml
 
       - name: Run Action
-        uses: ./
+        uses: ./action.yml
         with:
           token: ${{ steps.generate_token.outputs.token }}
           projectNumber: 10
