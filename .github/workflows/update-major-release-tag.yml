@@ -6,4 +6,4 @@ on:
 
 jobs:
   tag-major-release:
-    uses: TorqIT/pimcore-github-actions-workflows@v1
+    uses: TorqIT/pimcore-github-actions-workflows/.github/workflows/update-major-release-tag.yml@v1
