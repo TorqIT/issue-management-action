@@ -27,7 +27,7 @@ jobs:
       - name: Run Action
         env:
           GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
-        uses: ./
+        uses: ./action.yml
         with:
           token: ${{ env.GITHUB_TOKEN }}
           projectNumber: 10
