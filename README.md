@@ -31,7 +31,7 @@ jobs:
           private_key: ${{ secrets.ISSUE_MANAGEMENT_ACTION_PRIVATE_KEY }}
 
       - name: Issue management
-        uses: TorqIT/issue-management-action@v2.0.0
+        uses: TorqIT/issue-management-action@v2
         with:
           token: ${{ steps.generate_token.outputs.token }}
           # Project number. Can be found in the URL of your project (i.e. https://github.com/orgs/<your-org>/projects/<project-number>)
