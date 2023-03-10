@@ -9,6 +9,7 @@ on:
 jobs:
   pull_requests:
     runs-on: ubuntu-latest
+
     steps:
       - name: Generate token
         id: generate_token
@@ -34,5 +35,5 @@ jobs:
       - name: Run Action
         uses: ./
         with:
-          token: ${{ steps.generate_token.outputs.token }}
+          # token: ${{ steps.generate_token.outputs.token }}
           projectNumber: 10
