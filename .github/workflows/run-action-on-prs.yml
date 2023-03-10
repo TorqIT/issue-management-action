@@ -19,21 +19,15 @@ jobs:
           private_key: ${{ secrets.APP_PEM }}
 
       - uses: actions/checkout@v3
+        token: ${{ steps.generate_token.outputs.token }}
 
       - name: Build
         run: |
           npm install --legacy-peer-deps
           npm run all
 
-      - run: |
-          ls -l
-          cd dist
-          ls -l
-          cd ..
-          cat action.yml
-
       - name: Run Action
-        uses: ./
+        uses: ./action.yml
         with:
-          # token: ${{ steps.generate_token.outputs.token }}
+          token: ${{ steps.generate_token.outputs.token }}
           projectNumber: 10
