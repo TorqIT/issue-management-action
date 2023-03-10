@@ -68,6 +68,7 @@ async function extractEventInformation(octokit: Octokit, testers: string[]): Pro
 
         const requestedTesters = testers.filter(t => reviewers.includes(t));
         if (requestedTesters.length > 0) {
+            core.info(`Requested testers: ${requestedTesters}`);
             statusToBeSet = Status.Test;
         } else {
             statusToBeSet = Status.Review;
