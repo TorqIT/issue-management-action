@@ -19,7 +19,8 @@ jobs:
           private_key: ${{ secrets.APP_PEM }}
 
       - uses: actions/checkout@v3
-        token: ${{ steps.generate_token.outputs.token }}
+        with: 
+          token: ${{ steps.generate_token.outputs.token }}
 
       - name: Build
         run: |
