@@ -2,7 +2,7 @@ name: 'Run the action itself on PRs for testing'
 
 on:
   pull_request:
-    types: [review_requested]
+    types: [review_requested, synchronize]
   pull_request_review:
     types: submitted
 
