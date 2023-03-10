@@ -24,10 +24,15 @@ jobs:
           npm install --legacy-peer-deps
           npm run all
 
+      - run: |
+          ls -l
+          cd dist
+          ls -l
+          cd ..
+          cat action.yml
+
       - name: Run Action
-        env:
-          GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
         uses: ./
         with:
-          token: ${{ env.GITHUB_TOKEN }}
+          token: ${{ steps.generate_token.outputs.token }}
           projectNumber: 10
