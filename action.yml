@@ -11,6 +11,9 @@ inputs:
   projectNumber:
     required: true
     description: Project number. Can be found in the URL of your project (i.e. https://github.com/orgs/<your-org>/projects/<project-number>)
+  testers:
+    required: false
+    description: (Optional) comma-separated list of tester usernames. When a review is requested for these users, the linked issues will be moved to a "Test" status.
 runs:
   using: 'node16'
   main: 'dist/index.js'

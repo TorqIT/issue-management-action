@@ -31,3 +31,4 @@ jobs:
         with:
           token: ${{ env.GITHUB_TOKEN }}
           projectNumber: 10
+          testers: evanjamesjackson

@@ -5,7 +5,6 @@ import { User, PullRequestReviewSubmittedEvent, PullRequestReviewRequestedEvent 
 import { Octokit } from '@octokit/rest'
 import { fetchLinkedIssues } from './fetchLinkedIssues'
 import { updateIssueStatus, Status } from './updateIssueStatus'
-import { link } from 'fs'
 
 type Issue = components['schemas']['issue']
 
@@ -14,7 +13,9 @@ async function run(): Promise<void> {
         auth: core.getInput('token')
     })
 
-    const eventInfo = await extractEventInformation(octokit);
+    const testers = core.getInput('testers').split(',');
+
+    const eventInfo = await extractEventInformation(octokit, testers);
 
     if (eventInfo) {
         for (const issue of eventInfo.linkedIssues) {
@@ -46,7 +47,7 @@ async function updateAssignees(octokit: Octokit, issue: Issue, assignees: string
     })
 }
 
-async function extractEventInformation(octokit: Octokit): Promise<{
+async function extractEventInformation(octokit: Octokit, testers: string[]): Promise<{
     toBeAssigned: string[],
     linkedIssues: Issue[],
     statusToBeSet: Status
@@ -65,7 +66,12 @@ async function extractEventInformation(octokit: Octokit): Promise<{
         core.info(`Requested reviewers: ${reviewers}`);
         toBeAssigned = reviewers;
 
-        statusToBeSet = Status.Review;
+        const requestedTesters = testers.filter(t => reviewers.includes(t));
+        if (requestedTesters.length > 0) {
+            statusToBeSet = Status.Test;
+        } else {
+            statusToBeSet = Status.Review;
+        }
     } else if (github.context.eventName === 'pull_request_review') {
         const event = github.context.payload as PullRequestReviewSubmittedEvent;
         if (event.review.state === 'changes_requested') {
