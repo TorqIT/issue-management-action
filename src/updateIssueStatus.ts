@@ -23,6 +23,7 @@ export enum Status {
  */
 export async function updateIssueStatus(
   issueNumber: number,
+  repoName: string,
   projectNumber: number,
   status: Status
 ): Promise<void> {
@@ -52,6 +53,7 @@ export async function updateIssueStatus(
   const issues = await fetchIssuesInProject(graphqlWithAuth, projectNumber);
   const projectIssueId = issues.find(
     x => (x?.content as Issue).number === issueNumber
+      && (x?.content as Issue).repository.name === repoName
   )?.id
   core.info(`Found project issue with ID ${projectIssueId} for issue #${issueNumber}`);
 

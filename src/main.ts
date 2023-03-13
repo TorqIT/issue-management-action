@@ -22,6 +22,7 @@ async function run(): Promise<void> {
             await updateAssignees(octokit, issue, eventInfo.toBeAssigned);
             await updateIssueStatus(
                 issue.number,
+                github.context.repo.repo,
                 Number(core.getInput('projectNumber')),
                 eventInfo.statusToBeSet
             )

@@ -142,7 +142,7 @@ function run() {
         if (eventInfo) {
             for (const issue of eventInfo.linkedIssues) {
                 yield updateAssignees(octokit, issue, eventInfo.toBeAssigned);
-                yield (0, updateIssueStatus_1.updateIssueStatus)(issue.number, Number(core.getInput('projectNumber')), eventInfo.statusToBeSet);
+                yield (0, updateIssueStatus_1.updateIssueStatus)(issue.number, github.context.repo.repo, Number(core.getInput('projectNumber')), eventInfo.statusToBeSet);
             }
         }
     });
@@ -260,7 +260,7 @@ var Status;
 /**
  * Updates the given issue in the given project to the given status.
  */
-function updateIssueStatus(issueNumber, projectNumber, status) {
+function updateIssueStatus(issueNumber, repoName, projectNumber, status) {
     var _a, _b, _c;
     return __awaiter(this, void 0, void 0, function* () {
         core.info(`Updating status for issue #${issueNumber} to ${status}...`);
@@ -277,7 +277,8 @@ function updateIssueStatus(issueNumber, projectNumber, status) {
         const statusOptionId = (_b = statusField === null || statusField === void 0 ? void 0 : statusField.options.find(x => x.name.includes(status))) === null || _b === void 0 ? void 0 : _b.id;
         core.info(`Found option ID ${statusOptionId} for status ${status}`);
         const issues = yield fetchIssuesInProject(graphqlWithAuth, projectNumber);
-        const projectIssueId = (_c = issues.find(x => (x === null || x === void 0 ? void 0 : x.content).number === issueNumber)) === null || _c === void 0 ? void 0 : _c.id;
+        const projectIssueId = (_c = issues.find(x => (x === null || x === void 0 ? void 0 : x.content).number === issueNumber
+            && (x === null || x === void 0 ? void 0 : x.content).repository.name === repoName)) === null || _c === void 0 ? void 0 : _c.id;
         core.info(`Found project issue with ID ${projectIssueId} for issue #${issueNumber}`);
         if (statusFieldId && statusOptionId && projectId && projectIssueId) {
             core.info(`Setting field ${statusFieldId} in issue ${projectIssueId} to value ${statusOptionId}`);
