@@ -363,7 +363,9 @@ function fetchIssuesInProject(graphqlWithAuth, projectNumber) {
                     content {
                       ... on Issue {
                         number,
-                        repository
+                        repository {
+                          name
+                        }
                       }
                     }
                   }

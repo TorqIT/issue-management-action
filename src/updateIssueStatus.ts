@@ -158,7 +158,9 @@ async function fetchIssuesInProject(
                     content {
                       ... on Issue {
                         number,
-                        repository
+                        repository {
+                          name
+                        }
                       }
                     }
                   }
