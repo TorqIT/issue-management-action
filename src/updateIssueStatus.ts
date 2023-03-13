@@ -26,7 +26,7 @@ export async function updateIssueStatus(
   projectNumber: number,
   status: Status
 ): Promise<void> {
-  core.info(`Updating status for issue #${issueNumber}...`)
+  core.info(`Updating status for issue #${issueNumber} to ${status}...`)
 
   const graphqlWithAuth = graphql.defaults({
     headers: {
@@ -42,10 +42,12 @@ export async function updateIssueStatus(
     x => x?.name === 'Status'
   ) as ProjectV2SingleSelectField
   const statusFieldId = statusField?.id
+  core.info(`Found field ID ${statusFieldId} for status field`)
 
   const statusOptionId = statusField?.options.find(x =>
     x.name.includes(status)
   )?.id
+  core.info(`Found option ID ${statusOptionId} for status ${status}`);
 
   const issues = await fetchIssuesInProject(graphqlWithAuth, projectNumber);
   const projectIssueId = issues.find(
@@ -54,7 +56,7 @@ export async function updateIssueStatus(
   core.info(`Found project issue with ID ${projectIssueId} for issue #${issueNumber}`);
 
   if (statusFieldId && statusOptionId && projectId && projectIssueId) {
-    core.info(`Setting field ${statusFieldId} in issue ${projectIssueId}`)
+    core.info(`Setting field ${statusFieldId} in issue ${projectIssueId} to value ${statusOptionId}`)
     const updateIssueInput: UpdateProjectV2ItemFieldValueInput = {
       fieldId: statusFieldId,
       itemId: projectIssueId,
