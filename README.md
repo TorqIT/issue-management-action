@@ -37,7 +37,7 @@ jobs:
           # Project number. Can be found in the URL of your project (i.e. https://github.com/orgs/<your-org>/projects/<project-number>)
           projectNumber: 10
           # Optional comma-separated list of tester usernames
-          testers: testerUser1,testerUser2
+          testers: evanjamesjackson,nick-compoassaq
 ```
 
 ### Development
