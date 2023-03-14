@@ -10,7 +10,7 @@ In order to work with the Projects V2 API, your repository will need to be regis
 
 ### Example usage
 
-In your workflow, use the Action like the example below. When a review is requested on a Pull Request, the Action will automatically assign any linked issues to the reviewer, and update its status to "Review" (note that a status containing this word must be present in your project). Whenever changes are requested on the PR, the Action will assign the issue back to the original developer, and update its status to "In Progress" (again, a status containing these words must exist in your project).
+In your workflow, use the Action like the example below. When a review is requested on a Pull Request, the Action will automatically assign any linked issues to the reviewer, and update its status to "Review" (note that a status containing this word must be present in your project). Whenever changes are requested on the PR, the Action will assign the issue back to the original developer, and update its status to "In Progress" (again, a status containing these words must exist in your project). You can also optionally define a comma-separated list of tester users - whenever a PR is assigned to one of these users, the linked issues will be moved to a "Test" status (again, a status containing this word must exist in your project).
 
 ```yaml
 on:
@@ -36,6 +36,8 @@ jobs:
           token: ${{ steps.generate_token.outputs.token }}
           # Project number. Can be found in the URL of your project (i.e. https://github.com/orgs/<your-org>/projects/<project-number>)
           projectNumber: 10
+          # Optional comma-separated list of tester usernames
+          testers: testerUser1,testerUser2
 ```
 
 ### Development
